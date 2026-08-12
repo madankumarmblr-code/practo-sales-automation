@@ -82,6 +82,12 @@ export const api = {
   searchLeads: (body) =>
     request('/api/lead-generator/search', { method: 'POST', body: JSON.stringify(body) }),
   getLeadGeneratorMeta: () => request('/api/lead-generator/meta'),
+  getLeadGeneratorOptions: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString();
+    return request(`/api/lead-generator/options${qs ? `?${qs}` : ''}`);
+  },
   importLeads: (leads) =>
     request('/api/lead-generator/import', { method: 'POST', body: JSON.stringify({ leads }) }),
   getCampaigns: () => request('/api/autopilot/campaigns'),

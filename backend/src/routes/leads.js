@@ -136,24 +136,55 @@ export function registerLeadRoutes(app) {
     res.json({ ok: true });
   });
 
-  // Lead generator — multi-platform clinic discovery by city / zone / specialty
+  // Lead generator — sheet-driven city / zone / keyword discovery
   app.post('/api/lead-generator/search', (req, res) => {
     const body = req.body || {};
     const city = body.city || body.location;
-    const { zone = 'All', specialty, limit = null } = body;
+    const { zone = 'All', specialty, keyword, limit = null } = body;
+    const kw = keyword || specialty;
 
-    if (!city || !specialty) {
+    if (!city || !kw) {
       return res.status(400).json({
-        error: 'Select city and specialty to discover clinics (zone can be All)',
+        error: 'Select city and keyword/specialty from the locations sheet (zone can be All)',
       });
     }
 
-    // Default: pull entire inventory for the selection (no small sample limit)
-    const discovery = discoverClinics({ city, zone, specialty, limit });
+    const discovery = discoverClinics({ city, zone, specialty: kw, keyword: kw, limit });
     if (discovery.error && !discovery.results?.length) {
       return res.status(400).json({ error: discovery.error });
     }
     res.json(discovery);
+  });
+
+  app.get('/api/lead-generator/options', (req, res) => {
+    const city = (req.query.city || '').toString();
+    const zone = (req.query.zone || '').toString();
+    const keyword = (req.query.keyword || req.query.specialty || '').toString();
+    const meta = getDiscoveryMeta();
+    const zones = city ? meta.zonesByCity[city] || [] : [];
+    const zoneMeta = city ? meta.zoneMetaByCity[city] || {} : {};
+    let keywords = meta.keywords || meta.specialties || [];
+    if (city && zone && zone !== 'All') {
+      keywords = meta.keywordsByCityZone[`${city}||${zone}`] || [];
+    } else if (city) {
+      keywords = meta.keywordsByCity[city] || keywords;
+    }
+    let filteredZones = zones;
+    if (city && keyword) {
+      filteredZones = zones.filter((z) =>
+        (meta.keywordsByCityZone[`${city}||${z}`] || []).includes(keyword)
+      );
+      if (!filteredZones.length) filteredZones = zones;
+    }
+    res.json({
+      city,
+      zone,
+      keyword,
+      zones: filteredZones,
+      zoneMeta,
+      keywords,
+      cities: meta.cities,
+    });
   });
 
   app.post('/api/lead-generator/import', (req, res) => {

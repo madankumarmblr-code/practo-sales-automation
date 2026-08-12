@@ -5,6 +5,10 @@ import { useToast } from '../hooks/useToast';
 const DEFAULT_META = {
   cities: [],
   zonesByCity: {},
+  zoneMetaByCity: {},
+  keywordsByCity: {},
+  keywordsByCityZone: {},
+  keywords: [],
   specialties: [],
   platforms: [],
 };
@@ -15,9 +19,9 @@ export default function LeadGenerator() {
   const toast = useToast();
   const [meta, setMeta] = useState(DEFAULT_META);
   const [criteria, setCriteria] = useState({
-    city: 'Bangalore',
+    city: '',
     zone: 'All',
-    specialty: 'Dentist',
+    keyword: '',
   });
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -28,43 +32,59 @@ export default function LeadGenerator() {
   const [practoFilter, setPractoFilter] = useState('all');
   const [zoneFilter, setZoneFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [ready, setReady] = useState(false);
 
-  const zones = useMemo(
-    () => meta.zonesByCity[criteria.city] || [],
-    [meta.zonesByCity, criteria.city]
-  );
+  const zoneMeta = meta.zoneMetaByCity[criteria.city] || {};
+
+  const zones = useMemo(() => {
+    const list = meta.zonesByCity[criteria.city] || [];
+    if (!criteria.keyword) return list;
+    return list.filter((z) =>
+      (meta.keywordsByCityZone[`${criteria.city}||${z}`] || []).includes(criteria.keyword)
+    );
+  }, [meta, criteria.city, criteria.keyword]);
+
+  const keywords = useMemo(() => {
+    if (!criteria.city) return meta.keywords || meta.specialties || [];
+    if (criteria.zone && criteria.zone !== 'All') {
+      return meta.keywordsByCityZone[`${criteria.city}||${criteria.zone}`] || [];
+    }
+    return meta.keywordsByCity[criteria.city] || meta.keywords || [];
+  }, [meta, criteria.city, criteria.zone]);
 
   useEffect(() => {
     api
       .getLeadGeneratorMeta()
       .then((data) => {
         setMeta(data);
-        const city = data.cities.includes('Bangalore') ? 'Bangalore' : data.cities[0];
-        setCriteria((c) => ({
-          ...c,
-          city: city || c.city,
-          zone: 'All',
-          specialty: data.specialties.includes('Dentist') ? 'Dentist' : data.specialties[0] || c.specialty,
-        }));
+        const city = data.cities.includes('Bangalore')
+          ? 'Bangalore'
+          : data.cities[0] || '';
+        const cityKeywords = data.keywordsByCity?.[city] || data.keywords || data.specialties || [];
+        const keyword = cityKeywords.includes('General Dentistry')
+          ? 'General Dentistry'
+          : cityKeywords[0] || '';
+        setCriteria({ city, zone: 'All', keyword });
+        setReady(true);
       })
       .catch((e) => toast(e.message));
   }, []);
 
   const runDiscovery = useCallback(
     async (nextCriteria = criteria) => {
-      if (!nextCriteria.city || !nextCriteria.specialty) return;
+      if (!nextCriteria.city || !nextCriteria.keyword) return;
       setBusy(true);
-      setScanStep('Scanning Google Maps, Practo, Justdial, Lybrate across selected locations…');
+      setScanStep('Matching city / zone / keyword from locations sheet…');
       try {
-        await new Promise((r) => setTimeout(r, 250));
-        setScanStep('Pulling full clinic inventory for selected locations…');
+        await new Promise((r) => setTimeout(r, 180));
+        setScanStep(`Pulling full leads for ${nextCriteria.keyword} in selected locations…`);
         const data = await api.searchLeads({
-          ...nextCriteria,
+          city: nextCriteria.city,
           zone: nextCriteria.zone || 'All',
+          keyword: nextCriteria.keyword,
+          specialty: nextCriteria.keyword,
           limit: null,
         });
-        setScanStep('Enriching owner, marketing head, Practo & platform fields…');
-        await new Promise((r) => setTimeout(r, 150));
         setResults(data.results || []);
         setSummary(data.summary || null);
         setScannedSources(data.scannedSources || []);
@@ -73,10 +93,12 @@ export default function LeadGenerator() {
         setZoneFilter('all');
         const where =
           nextCriteria.zone === 'All' || nextCriteria.zone === 'All zones'
-            ? `all zones in ${nextCriteria.city}`
+            ? `all mapped zones in ${nextCriteria.city}`
             : `${nextCriteria.zone}, ${nextCriteria.city}`;
-        toast(`Loaded full inventory: ${data.count} ${nextCriteria.specialty} clinics in ${where}`);
+        toast(`Loaded ${data.count} leads for ${nextCriteria.keyword} · ${where}`);
       } catch (err) {
+        setResults([]);
+        setSummary(null);
         toast(err.message);
       } finally {
         setBusy(false);
@@ -87,15 +109,30 @@ export default function LeadGenerator() {
   );
 
   useEffect(() => {
-    if (!criteria.city || !criteria.specialty) return undefined;
-    const t = setTimeout(() => {
-      runDiscovery(criteria);
-    }, 200);
+    if (!ready || !criteria.city || !criteria.keyword) return undefined;
+    const t = setTimeout(() => runDiscovery(criteria), 220);
     return () => clearTimeout(t);
-  }, [criteria.city, criteria.zone, criteria.specialty]);
+  }, [ready, criteria.city, criteria.zone, criteria.keyword]);
 
   function updateCity(city) {
-    setCriteria({ city, zone: 'All', specialty: criteria.specialty });
+    const cityKeywords = meta.keywordsByCity[city] || meta.keywords || [];
+    const keyword = cityKeywords.includes(criteria.keyword)
+      ? criteria.keyword
+      : cityKeywords.includes('General Dentistry')
+        ? 'General Dentistry'
+        : cityKeywords[0] || '';
+    setCriteria({ city, zone: 'All', keyword });
+  }
+
+  function updateZone(zone) {
+    const nextKeywords =
+      zone && zone !== 'All'
+        ? meta.keywordsByCityZone[`${criteria.city}||${zone}`] || []
+        : meta.keywordsByCity[criteria.city] || [];
+    const keyword = nextKeywords.includes(criteria.keyword)
+      ? criteria.keyword
+      : nextKeywords[0] || '';
+    setCriteria({ ...criteria, zone, keyword });
   }
 
   function toggle(id) {
@@ -149,11 +186,10 @@ export default function LeadGenerator() {
   const pageSafe = Math.min(page, totalPages);
   const pageRows = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
   const selectedCount = Object.values(selected).filter(Boolean).length;
-
-  const resultZones = useMemo(() => {
-    const set = new Set(results.map((r) => r.zone));
-    return [...set].sort();
-  }, [results]);
+  const resultZones = useMemo(
+    () => [...new Set(results.map((r) => r.zone))].sort(),
+    [results]
+  );
 
   return (
     <>
@@ -161,8 +197,8 @@ export default function LeadGenerator() {
         <div>
           <h1>Lead Generator</h1>
           <p>
-            Select city, zone (or All zones), and specialty — we pull the <strong>full clinic inventory</strong> from
-            search engines and listing platforms with owner, marketing head, Practo, and platform columns.
+            Driven by the locations sheet — pick <strong>City → Zone/Locality → Keyword</strong> to load
+            matching clinic leads with owner, marketing head, Practo, and platform details.
           </p>
         </div>
         <div className="topbar-actions">
@@ -172,7 +208,7 @@ export default function LeadGenerator() {
             disabled={busy}
             onClick={() => runDiscovery(criteria)}
           >
-            Rescan full inventory
+            Rescan
           </button>
           <button
             type="button"
@@ -186,7 +222,7 @@ export default function LeadGenerator() {
       </div>
 
       <div className="panel" style={{ marginBottom: '1rem' }}>
-        <h2>Discovery filters</h2>
+        <h2>Locations sheet filters</h2>
         <div className="form-grid three">
           <label className="field">
             City
@@ -199,28 +235,29 @@ export default function LeadGenerator() {
             </select>
           </label>
           <label className="field">
-            Zone / location
-            <select
-              value={criteria.zone}
-              onChange={(e) => setCriteria({ ...criteria, zone: e.target.value })}
-            >
-              <option value="All">All zones (full city)</option>
-              {zones.map((z) => (
-                <option key={z} value={z}>
-                  {z}
-                </option>
-              ))}
+            Zone / locality
+            <select value={criteria.zone} onChange={(e) => updateZone(e.target.value)}>
+              <option value="All">All mapped zones</option>
+              {zones.map((z) => {
+                const type = zoneMeta[z]?.type || '';
+                return (
+                  <option key={z} value={z}>
+                    {z}
+                    {type ? ` (${type})` : ''}
+                  </option>
+                );
+              })}
             </select>
           </label>
           <label className="field">
-            Specialty
+            Keyword / specialty
             <select
-              value={criteria.specialty}
-              onChange={(e) => setCriteria({ ...criteria, specialty: e.target.value })}
+              value={criteria.keyword}
+              onChange={(e) => setCriteria({ ...criteria, keyword: e.target.value })}
             >
-              {meta.specialties.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {keywords.map((k) => (
+                <option key={k} value={k}>
+                  {k}
                 </option>
               ))}
             </select>
@@ -231,23 +268,28 @@ export default function LeadGenerator() {
           <div className="muted" style={{ marginBottom: 8, fontSize: '0.85rem' }}>
             {busy && scanStep
               ? scanStep
-              : `Platforms scanned: ${(scannedSources.length ? scannedSources : meta.platforms).map((p) => p.name || p).join(' · ')}`}
+              : `Sheet source: locations.csv · ${meta.comboCount || meta.catalogSize || '—'} city/zone/keyword mappings · Platforms: ${(
+                  scannedSources.length ? scannedSources : meta.platforms || []
+                )
+                  .map((p) => p.name || p)
+                  .join(' · ')}`}
           </div>
           {summary ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className="badge badge-teal">{summary.total} clinics loaded</span>
+              <span className="badge badge-teal">{summary.total} leads loaded</span>
               <span className="badge badge-blue">{summary.zonesCovered || 1} zone(s)</span>
               <span className="badge badge-green">Practo: {summary.withPractoProfile}</span>
               <span className="badge badge-coral">No Practo: {summary.withoutPractoProfile}</span>
-              <span className="badge">{summary.platformsCovered} platforms</span>
             </div>
           ) : null}
           {summary?.perZone ? (
             <div className="muted" style={{ marginTop: 10, fontSize: '0.82rem' }}>
               Per zone:{' '}
               {Object.entries(summary.perZone)
+                .slice(0, 12)
                 .map(([z, n]) => `${z} (${n})`)
                 .join(' · ')}
+              {Object.keys(summary.perZone).length > 12 ? ' …' : ''}
             </div>
           ) : null}
         </div>
@@ -284,12 +326,7 @@ export default function LeadGenerator() {
             <option value="yes">Has Practo profile</option>
             <option value="no">No Practo profile</option>
           </select>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => toggleAll(pageRows)}
-            disabled={!pageRows.length}
-          >
+          <button type="button" className="btn btn-ghost" onClick={() => toggleAll(pageRows)} disabled={!pageRows.length}>
             Select page
           </button>
           <button
@@ -303,9 +340,12 @@ export default function LeadGenerator() {
         </div>
 
         {busy && !results.length ? (
-          <div className="empty">{scanStep || 'Pulling full clinic inventory…'}</div>
+          <div className="empty">{scanStep || 'Loading sheet-mapped leads…'}</div>
         ) : !filtered.length ? (
-          <div className="empty">No clinics matched these filters. Try another location or specialty.</div>
+          <div className="empty">
+            No leads for this city / zone / keyword combination in the locations sheet. Try another
+            locality or keyword.
+          </div>
         ) : (
           <>
             <div className="table-wrap discovery-table">
@@ -334,7 +374,7 @@ export default function LeadGenerator() {
                       <td>
                         <strong>{r.clinicName}</strong>
                         <div className="muted" style={{ fontSize: '0.82rem' }}>
-                          {r.specialty} · {r.zone}, {r.city}
+                          {r.keyword || r.specialty} · {r.zone}, {r.city}
                         </div>
                         <div className="muted" style={{ fontSize: '0.78rem' }}>
                           {r.address}
@@ -411,7 +451,10 @@ export default function LeadGenerator() {
               </table>
             </div>
 
-            <div className="toolbar" style={{ marginTop: '0.85rem', marginBottom: 0, justifyContent: 'space-between' }}>
+            <div
+              className="toolbar"
+              style={{ marginTop: '0.85rem', marginBottom: 0, justifyContent: 'space-between' }}
+            >
               <span className="muted" style={{ fontSize: '0.85rem' }}>
                 Showing {(pageSafe - 1) * PAGE_SIZE + 1}–{Math.min(pageSafe * PAGE_SIZE, filtered.length)} of{' '}
                 {filtered.length}
