@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import LeadGenerator from './pages/LeadGenerator';
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/super-admin" element={<SuperAdmin />} />
           </Route>
         </Routes>
+        <Analytics />
       </ToastContext.Provider>
     </AuthProvider>
   );
