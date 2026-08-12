@@ -9,12 +9,14 @@ const DEFAULT_META = {
   platforms: [],
 };
 
+const PAGE_SIZE = 50;
+
 export default function LeadGenerator() {
   const toast = useToast();
   const [meta, setMeta] = useState(DEFAULT_META);
   const [criteria, setCriteria] = useState({
     city: 'Bangalore',
-    zone: 'Indiranagar',
+    zone: 'All',
     specialty: 'Dentist',
   });
   const [results, setResults] = useState([]);
@@ -24,6 +26,8 @@ export default function LeadGenerator() {
   const [busy, setBusy] = useState(false);
   const [scanStep, setScanStep] = useState('');
   const [practoFilter, setPractoFilter] = useState('all');
+  const [zoneFilter, setZoneFilter] = useState('all');
+  const [page, setPage] = useState(1);
 
   const zones = useMemo(
     () => meta.zonesByCity[criteria.city] || [],
@@ -36,11 +40,10 @@ export default function LeadGenerator() {
       .then((data) => {
         setMeta(data);
         const city = data.cities.includes('Bangalore') ? 'Bangalore' : data.cities[0];
-        const zoneList = data.zonesByCity[city] || [];
         setCriteria((c) => ({
           ...c,
           city: city || c.city,
-          zone: zoneList[0] || c.zone,
+          zone: 'All',
           specialty: data.specialties.includes('Dentist') ? 'Dentist' : data.specialties[0] || c.specialty,
         }));
       })
@@ -49,21 +52,30 @@ export default function LeadGenerator() {
 
   const runDiscovery = useCallback(
     async (nextCriteria = criteria) => {
-      if (!nextCriteria.city || !nextCriteria.zone || !nextCriteria.specialty) return;
+      if (!nextCriteria.city || !nextCriteria.specialty) return;
       setBusy(true);
-      setScanStep('Scanning Google Maps, Practo, Justdial, Lybrate…');
+      setScanStep('Scanning Google Maps, Practo, Justdial, Lybrate across selected locations…');
       try {
-        // Brief staged feedback so the multi-platform scan feels intentional
-        await new Promise((r) => setTimeout(r, 350));
-        setScanStep('Enriching owner & marketing contacts…');
-        const data = await api.searchLeads(nextCriteria);
-        setScanStep('Checking Practo profiles & platform listings…');
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 250));
+        setScanStep('Pulling full clinic inventory for selected locations…');
+        const data = await api.searchLeads({
+          ...nextCriteria,
+          zone: nextCriteria.zone || 'All',
+          limit: null,
+        });
+        setScanStep('Enriching owner, marketing head, Practo & platform fields…');
+        await new Promise((r) => setTimeout(r, 150));
         setResults(data.results || []);
         setSummary(data.summary || null);
         setScannedSources(data.scannedSources || []);
         setSelected({});
-        toast(`Found ${data.count} ${nextCriteria.specialty} clinics in ${nextCriteria.zone}, ${nextCriteria.city}`);
+        setPage(1);
+        setZoneFilter('all');
+        const where =
+          nextCriteria.zone === 'All' || nextCriteria.zone === 'All zones'
+            ? `all zones in ${nextCriteria.city}`
+            : `${nextCriteria.zone}, ${nextCriteria.city}`;
+        toast(`Loaded full inventory: ${data.count} ${nextCriteria.specialty} clinics in ${where}`);
       } catch (err) {
         toast(err.message);
       } finally {
@@ -74,31 +86,33 @@ export default function LeadGenerator() {
     [criteria, toast]
   );
 
-  // Auto-discover whenever city + zone + specialty are all set
   useEffect(() => {
-    if (!criteria.city || !criteria.zone || !criteria.specialty) return undefined;
+    if (!criteria.city || !criteria.specialty) return undefined;
     const t = setTimeout(() => {
       runDiscovery(criteria);
-    }, 180);
+    }, 200);
     return () => clearTimeout(t);
   }, [criteria.city, criteria.zone, criteria.specialty]);
 
   function updateCity(city) {
-    const zoneList = meta.zonesByCity[city] || [];
-    setCriteria({ city, zone: zoneList[0] || '', specialty: criteria.specialty });
+    setCriteria({ city, zone: 'All', specialty: criteria.specialty });
   }
 
   function toggle(id) {
     setSelected((s) => ({ ...s, [id]: !s[id] }));
   }
 
-  function toggleAll(visible) {
-    if (visible.every((r) => selected[r.id])) {
-      setSelected({});
+  function toggleAll(rows) {
+    if (rows.every((r) => selected[r.id])) {
+      const next = { ...selected };
+      rows.forEach((r) => {
+        delete next[r.id];
+      });
+      setSelected(next);
       return;
     }
     const next = { ...selected };
-    visible.forEach((r) => {
+    rows.forEach((r) => {
       next[r.id] = true;
     });
     setSelected(next);
@@ -122,11 +136,24 @@ export default function LeadGenerator() {
     }
   }
 
-  const visible = results.filter((r) => {
-    if (practoFilter === 'yes') return r.practo?.hasProfile;
-    if (practoFilter === 'no') return !r.practo?.hasProfile;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return results.filter((r) => {
+      if (practoFilter === 'yes' && !r.practo?.hasProfile) return false;
+      if (practoFilter === 'no' && r.practo?.hasProfile) return false;
+      if (zoneFilter !== 'all' && r.zone !== zoneFilter) return false;
+      return true;
+    });
+  }, [results, practoFilter, zoneFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, totalPages);
+  const pageRows = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const selectedCount = Object.values(selected).filter(Boolean).length;
+
+  const resultZones = useMemo(() => {
+    const set = new Set(results.map((r) => r.zone));
+    return [...set].sort();
+  }, [results]);
 
   return (
     <>
@@ -134,8 +161,8 @@ export default function LeadGenerator() {
         <div>
           <h1>Lead Generator</h1>
           <p>
-            Pick a city, zone, and specialty — we scan search engines and listing platforms for clinics,
-            owner contacts, marketing heads, Practo presence, and associated platforms.
+            Select city, zone (or All zones), and specialty — we pull the <strong>full clinic inventory</strong> from
+            search engines and listing platforms with owner, marketing head, Practo, and platform columns.
           </p>
         </div>
         <div className="topbar-actions">
@@ -145,15 +172,15 @@ export default function LeadGenerator() {
             disabled={busy}
             onClick={() => runDiscovery(criteria)}
           >
-            Rescan platforms
+            Rescan full inventory
           </button>
           <button
             type="button"
             className="btn btn-primary"
             onClick={importSelected}
-            disabled={busy || !Object.values(selected).some(Boolean)}
+            disabled={busy || !selectedCount}
           >
-            Import selected
+            Import selected ({selectedCount})
           </button>
         </div>
       </div>
@@ -172,11 +199,12 @@ export default function LeadGenerator() {
             </select>
           </label>
           <label className="field">
-            Zone
+            Zone / location
             <select
               value={criteria.zone}
               onChange={(e) => setCriteria({ ...criteria, zone: e.target.value })}
             >
+              <option value="All">All zones (full city)</option>
               {zones.map((z) => (
                 <option key={z} value={z}>
                   {z}
@@ -207,10 +235,19 @@ export default function LeadGenerator() {
           </div>
           {summary ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className="badge badge-teal">{summary.total} clinics found</span>
+              <span className="badge badge-teal">{summary.total} clinics loaded</span>
+              <span className="badge badge-blue">{summary.zonesCovered || 1} zone(s)</span>
               <span className="badge badge-green">Practo: {summary.withPractoProfile}</span>
               <span className="badge badge-coral">No Practo: {summary.withoutPractoProfile}</span>
-              <span className="badge badge-blue">{summary.platformsCovered} platforms</span>
+              <span className="badge">{summary.platformsCovered} platforms</span>
+            </div>
+          ) : null}
+          {summary?.perZone ? (
+            <div className="muted" style={{ marginTop: 10, fontSize: '0.82rem' }}>
+              Per zone:{' '}
+              {Object.entries(summary.perZone)
+                .map(([z, n]) => `${z} (${n})`)
+                .join(' · ')}
             </div>
           ) : null}
         </div>
@@ -218,8 +255,31 @@ export default function LeadGenerator() {
 
       <div className="panel">
         <div className="toolbar">
-          <strong style={{ marginRight: 8 }}>{visible.length} clinics</strong>
-          <select value={practoFilter} onChange={(e) => setPractoFilter(e.target.value)}>
+          <strong style={{ marginRight: 8 }}>
+            {filtered.length} clinics
+            {filtered.length !== results.length ? ` (of ${results.length})` : ''}
+          </strong>
+          <select
+            value={zoneFilter}
+            onChange={(e) => {
+              setZoneFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">All result zones</option>
+            {resultZones.map((z) => (
+              <option key={z} value={z}>
+                {z}
+              </option>
+            ))}
+          </select>
+          <select
+            value={practoFilter}
+            onChange={(e) => {
+              setPractoFilter(e.target.value);
+              setPage(1);
+            }}
+          >
             <option value="all">All Practo statuses</option>
             <option value="yes">Has Practo profile</option>
             <option value="no">No Practo profile</option>
@@ -227,114 +287,158 @@ export default function LeadGenerator() {
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => toggleAll(visible)}
-            disabled={!visible.length}
+            onClick={() => toggleAll(pageRows)}
+            disabled={!pageRows.length}
           >
-            Select all visible
+            Select page
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => toggleAll(filtered)}
+            disabled={!filtered.length}
+          >
+            Select all loaded
           </button>
         </div>
 
         {busy && !results.length ? (
-          <div className="empty">{scanStep || 'Discovering clinics across platforms…'}</div>
-        ) : !visible.length ? (
-          <div className="empty">No clinics matched these filters. Try another zone or specialty.</div>
+          <div className="empty">{scanStep || 'Pulling full clinic inventory…'}</div>
+        ) : !filtered.length ? (
+          <div className="empty">No clinics matched these filters. Try another location or specialty.</div>
         ) : (
-          <div className="table-wrap discovery-table">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th />
-                  <th>Clinic</th>
-                  <th>Clinic owner & contact</th>
-                  <th>Marketing head details</th>
-                  <th>Practo profile</th>
-                  <th>Platforms associated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={!!selected[r.id]}
-                        onChange={() => toggle(r.id)}
-                        aria-label={`Select ${r.clinicName}`}
-                      />
-                    </td>
-                    <td>
-                      <strong>{r.clinicName}</strong>
-                      <div className="muted" style={{ fontSize: '0.82rem' }}>
-                        {r.specialty} · {r.zone}, {r.city}
-                      </div>
-                      <div className="muted" style={{ fontSize: '0.78rem' }}>
-                        {r.address}
-                      </div>
-                    </td>
-                    <td>
-                      <strong>{r.owner?.name}</strong>
-                      <div className="muted" style={{ fontSize: '0.82rem' }}>
-                        {r.owner?.title}
-                      </div>
-                      <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
-                        <div>{r.owner?.phone}</div>
-                        <div>{r.owner?.email}</div>
-                      </div>
-                    </td>
-                    <td>
-                      {r.marketingHead ? (
-                        <>
-                          <strong>{r.marketingHead.name}</strong>
-                          <div className="muted" style={{ fontSize: '0.82rem' }}>
-                            {r.marketingHead.title}
-                          </div>
-                          <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
-                            <div>{r.marketingHead.phone}</div>
-                            <div>{r.marketingHead.email}</div>
-                          </div>
-                        </>
-                      ) : (
-                        <span className="muted">Not listed on public platforms</span>
-                      )}
-                    </td>
-                    <td>
-                      {r.practo?.hasProfile ? (
-                        <>
-                          <span className="badge badge-green">Yes</span>
-                          {r.practo.rating ? (
-                            <div className="muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
-                              Rating {r.practo.rating}
-                            </div>
-                          ) : null}
-                          {r.practo.url ? (
-                            <a
-                              href={r.practo.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ display: 'inline-block', marginTop: 6, color: 'var(--teal-deep)', fontWeight: 600, fontSize: '0.82rem' }}
-                            >
-                              Open Practo →
-                            </a>
-                          ) : null}
-                        </>
-                      ) : (
-                        <span className="badge badge-coral">No</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="platform-tags">
-                        {(r.platformNames || []).map((p) => (
-                          <span key={p} className="badge badge-blue">
-                            {p}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
+          <>
+            <div className="table-wrap discovery-table">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th />
+                    <th>Clinic</th>
+                    <th>Clinic owner & contact</th>
+                    <th>Marketing head details</th>
+                    <th>Practo profile</th>
+                    <th>Platforms associated</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {pageRows.map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={!!selected[r.id]}
+                          onChange={() => toggle(r.id)}
+                          aria-label={`Select ${r.clinicName}`}
+                        />
+                      </td>
+                      <td>
+                        <strong>{r.clinicName}</strong>
+                        <div className="muted" style={{ fontSize: '0.82rem' }}>
+                          {r.specialty} · {r.zone}, {r.city}
+                        </div>
+                        <div className="muted" style={{ fontSize: '0.78rem' }}>
+                          {r.address}
+                        </div>
+                      </td>
+                      <td>
+                        <strong>{r.owner?.name}</strong>
+                        <div className="muted" style={{ fontSize: '0.82rem' }}>
+                          {r.owner?.title}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
+                          <div>{r.owner?.phone}</div>
+                          <div>{r.owner?.email}</div>
+                        </div>
+                      </td>
+                      <td>
+                        {r.marketingHead ? (
+                          <>
+                            <strong>{r.marketingHead.name}</strong>
+                            <div className="muted" style={{ fontSize: '0.82rem' }}>
+                              {r.marketingHead.title}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
+                              <div>{r.marketingHead.phone}</div>
+                              <div>{r.marketingHead.email}</div>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="muted">Not listed on public platforms</span>
+                        )}
+                      </td>
+                      <td>
+                        {r.practo?.hasProfile ? (
+                          <>
+                            <span className="badge badge-green">Yes</span>
+                            {r.practo.rating ? (
+                              <div className="muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+                                Rating {r.practo.rating}
+                              </div>
+                            ) : null}
+                            {r.practo.url ? (
+                              <a
+                                href={r.practo.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  display: 'inline-block',
+                                  marginTop: 6,
+                                  color: 'var(--teal-deep)',
+                                  fontWeight: 600,
+                                  fontSize: '0.82rem',
+                                }}
+                              >
+                                Open Practo →
+                              </a>
+                            ) : null}
+                          </>
+                        ) : (
+                          <span className="badge badge-coral">No</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="platform-tags">
+                          {(r.platformNames || []).map((p) => (
+                            <span key={p} className="badge badge-blue">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="toolbar" style={{ marginTop: '0.85rem', marginBottom: 0, justifyContent: 'space-between' }}>
+              <span className="muted" style={{ fontSize: '0.85rem' }}>
+                Showing {(pageSafe - 1) * PAGE_SIZE + 1}–{Math.min(pageSafe * PAGE_SIZE, filtered.length)} of{' '}
+                {filtered.length}
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={pageSafe <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </button>
+                <span className="muted" style={{ alignSelf: 'center', fontSize: '0.85rem' }}>
+                  Page {pageSafe} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={pageSafe >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </>

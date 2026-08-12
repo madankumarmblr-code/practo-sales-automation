@@ -25,42 +25,117 @@ export const SPECIALTIES = [
   'Diagnostics Lab',
 ];
 
+/** Expanded zone coverage per city for full-location pulls */
 export const GEO = {
-  Bangalore: ['Indiranagar', 'Koramangala', 'Whitefield', 'Jayanagar', 'HSR Layout', 'Malleshwaram'],
-  Mumbai: ['Andheri', 'Bandra', 'Powai', 'Thane', 'Dadar'],
-  'Delhi NCR': ['South Delhi', 'Gurgaon', 'Noida', 'Dwarka'],
-  Hyderabad: ['Banjara Hills', 'Gachibowli', 'Madhapur', 'Secunderabad'],
-  Chennai: ['T Nagar', 'Adyar', 'Velachery', 'Anna Nagar'],
-  Pune: ['Koregaon Park', 'Hinjewadi', 'Baner', 'Kothrud'],
+  Bangalore: [
+    'Indiranagar',
+    'Koramangala',
+    'Whitefield',
+    'Jayanagar',
+    'HSR Layout',
+    'Malleshwaram',
+    'BTM Layout',
+    'Marathahalli',
+    'Electronic City',
+    'Yelahanka',
+    'Rajajinagar',
+    'Banashankari',
+  ],
+  Mumbai: [
+    'Andheri',
+    'Bandra',
+    'Powai',
+    'Thane',
+    'Dadar',
+    'Borivali',
+    'Goregaon',
+    'Navi Mumbai',
+    'Malad',
+    'Worli',
+  ],
+  'Delhi NCR': [
+    'South Delhi',
+    'Gurgaon',
+    'Noida',
+    'Dwarka',
+    'Rohini',
+    'East Delhi',
+    'Ghaziabad',
+    'Faridabad',
+    'Saket',
+    'Connaught Place',
+  ],
+  Hyderabad: [
+    'Banjara Hills',
+    'Gachibowli',
+    'Madhapur',
+    'Secunderabad',
+    'Kukatpally',
+    'Hitech City',
+    'Jubilee Hills',
+    'Kondapur',
+    'Begumpet',
+  ],
+  Chennai: [
+    'T Nagar',
+    'Adyar',
+    'Velachery',
+    'Anna Nagar',
+    'OMR',
+    'Porur',
+    'Tambaram',
+    'Nungambakkam',
+    'Mylapore',
+  ],
+  Pune: [
+    'Koregaon Park',
+    'Hinjewadi',
+    'Baner',
+    'Kothrud',
+    'Hadapsar',
+    'Wakad',
+    'Viman Nagar',
+    'Kalyani Nagar',
+    'Aundh',
+  ],
 };
 
 const FIRST = [
   'Ananya', 'Rahul', 'Priya', 'Vikram', 'Sneha', 'Arjun', 'Meera', 'Karan', 'Nisha', 'Omar',
   'Kavitha', 'Sanjay', 'Fatima', 'Rohan', 'Anita', 'Imran', 'Lakshmi', 'Deepak', 'Neha', 'Manish',
   'Aisha', 'Dev', 'Suresh', 'Pooja', 'Nikhil', 'Ritu', 'Harsh', 'Divya', 'Aditya', 'Shreya',
+  'Gauri', 'Varun', 'Ishita', 'Mohit', 'Tanvi', 'Kunal', 'Rekha', 'Ashwin', 'Pallavi', 'Yash',
 ];
 const LAST = [
   'Reddy', 'Mehta', 'Nair', 'Singh', 'Kapoor', 'Desai', 'Iyer', 'Malhotra', 'Verma', 'Farooq',
   'Rao', 'Pillai', 'Sheikh', 'Gupta', 'Bose', 'Ali', 'Krishnan', 'Jain', 'Joshi', 'Aggarwal',
   'Khan', 'Patel', 'Sharma', 'Menon', 'Chopra', 'Banerjee', 'Nayak', 'Das', 'Mukherjee', 'Shah',
+  'Bhat', 'Kulkarni', 'Shetty', 'Trivedi', 'Pandey', 'Saxena', 'Gill', 'Ahuja', 'Bansal', 'Iyer',
 ];
 
 const CLINIC_PREFIX = [
   'Smile', 'Care', 'Pearl', 'Apollo', 'Harmony', 'Bright', 'City', 'Prime', 'Lotus', 'Aura',
   'Summit', 'Green', 'Metro', 'Nova', 'Pulse', 'Orchid', 'Skyline', 'Heritage', 'Unity', 'Elite',
+  'Ashirwad', 'Sankalp', 'Veda', 'Nexus', 'Aarogya', 'Lifeline', 'Medanta', 'Fortuna', 'Sapphire', 'Cedar',
 ];
 const CLINIC_SUFFIX = {
-  Dentist: ['Dental Care', 'Dental Clinic', 'Tooth Clinic', 'Orthodontics', 'Smile Studio'],
-  Dermatologist: ['Skin Clinic', 'Derm Centre', 'Skin & Hair', 'Derma Studio'],
-  Pediatrician: ['Kids Clinic', 'Child Care', 'Pediatrics', 'Little Care'],
-  Orthopedic: ['Ortho Centre', 'Bone & Joint', 'Ortho Clinic'],
-  Gynecologist: ['Womens Clinic', 'Maternity Care', 'Gyne Centre'],
-  Ophthalmologist: ['Eye Care', 'Eye Clinic', 'Vision Centre'],
-  ENT: ['ENT Clinic', 'ENT Care', 'Sinus & ENT'],
-  'General Physician': ['Family Clinic', 'Multi Speciality', 'Health Clinic'],
-  Physiotherapy: ['Physio Centre', 'Rehab Clinic', 'Physio Care'],
-  'Diagnostics Lab': ['Diagnostics', 'Path Lab', 'Diagnostic Centre'],
+  Dentist: ['Dental Care', 'Dental Clinic', 'Tooth Clinic', 'Orthodontics', 'Smile Studio', 'Dental Hub', 'Implant Centre'],
+  Dermatologist: ['Skin Clinic', 'Derm Centre', 'Skin & Hair', 'Derma Studio', 'Skin Lab', 'Derma Care'],
+  Pediatrician: ['Kids Clinic', 'Child Care', 'Pediatrics', 'Little Care', 'Child Health', 'Kids First'],
+  Orthopedic: ['Ortho Centre', 'Bone & Joint', 'Ortho Clinic', 'Spine & Ortho', 'Joint Care'],
+  Gynecologist: ['Womens Clinic', 'Maternity Care', 'Gyne Centre', 'Women Health', 'Fertility Care'],
+  Ophthalmologist: ['Eye Care', 'Eye Clinic', 'Vision Centre', 'Retina Care', 'Laser Eye'],
+  ENT: ['ENT Clinic', 'ENT Care', 'Sinus & ENT', 'Hearing Care', 'Throat & ENT'],
+  'General Physician': ['Family Clinic', 'Multi Speciality', 'Health Clinic', 'Polyclinic', 'Primary Care'],
+  Physiotherapy: ['Physio Centre', 'Rehab Clinic', 'Physio Care', 'Sports Physio', 'Recovery Lab'],
+  'Diagnostics Lab': ['Diagnostics', 'Path Lab', 'Diagnostic Centre', 'Imaging Lab', 'Health Check'],
 };
+
+const STREETS = [
+  'Main Road', 'Cross Road', '1st Block', '2nd Block', '3rd Cross', '4th Main', 'Ring Road',
+  'Market Road', 'Station Road', 'Temple Street', 'Church Street', 'Park Avenue', 'MG Road',
+  'Service Road', 'Link Road', 'Extension', 'Layout Road', 'Colony Road', 'Sector Road', 'Phase',
+];
 
 function hash(str) {
   let h = 0;
@@ -94,7 +169,7 @@ function slugify(name) {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '')
-    .slice(0, 18) || 'clinic';
+    .slice(0, 22) || 'clinic';
 }
 
 function citySlug(city) {
@@ -178,18 +253,38 @@ function buildPlatforms(seed, hasPracto, clinicName, city, specialty) {
   return all.filter((p) => p.listed);
 }
 
+/**
+ * Full-location density — intended to represent complete local inventory
+ * for a specialty inside one zone (not a tiny sample).
+ */
+export function clinicCountFor(specialty, city, zone) {
+  const seed = hash(`${city}|${zone}|${specialty}|density`);
+  const base = {
+    Dentist: 95,
+    Dermatologist: 62,
+    Pediatrician: 78,
+    Orthopedic: 54,
+    Gynecologist: 68,
+    Ophthalmologist: 58,
+    ENT: 48,
+    'General Physician': 110,
+    Physiotherapy: 52,
+    'Diagnostics Lab': 42,
+  }[specialty] || 55;
+  // Mild zone variance so denser areas show more listings
+  const zoneBoost = 8 + (seed % 25);
+  return base + zoneBoost;
+}
+
 function makeClinic({ city, zone, specialty, index }) {
   const key = `${city}|${zone}|${specialty}|${index}`;
   const seed = hash(key);
   const prefix = pick(CLINIC_PREFIX, seed);
   const suffix = pick(CLINIC_SUFFIX[specialty] || CLINIC_SUFFIX['General Physician'], seed >>> 3);
-  const landmarks = ['Plaza', 'Cross', 'Avenue', 'Residency', 'Arcade', 'Heights', 'Corner', 'Hub'];
-  const landmark = pick(landmarks, seed >>> 7);
-  const clinicName =
-    index === 0
-      ? `${prefix} ${suffix}`
-      : `${prefix} ${suffix} — ${zone} ${landmark}`;
-  const clinicSlug = slugify(clinicName);
+  const street = pick(STREETS, seed >>> 7);
+  const door = 1 + (seed % 240);
+  const clinicName = `${prefix} ${suffix} #${index + 1}`;
+  const clinicSlug = slugify(`${prefix}${suffix}${zone}${index}`);
 
   const ownerFirst = pick(FIRST, seed >>> 2);
   const ownerLast = pick(LAST, seed >>> 4);
@@ -201,17 +296,14 @@ function makeClinic({ city, zone, specialty, index }) {
   const mLast = pick(LAST, seed * 29 + index * 41);
   const marketingName = hasMarketing ? `${mFirst} ${mLast}` : null;
 
-  const hasPracto = seed % 5 !== 4; // ~80% on Practo
+  const hasPracto = seed % 5 !== 4;
   const rating = hasPracto ? (3.6 + ((seed % 14) / 10)).toFixed(1) : null;
-  const streetNo = 10 + (seed % 240);
-  const address = `${streetNo}, ${zone} Main Road, ${city}`;
+  const address = `${door}, ${street}, ${zone}, ${city}`;
 
   const ownerPhone = phoneFromSeed(seed);
   const ownerEmail = emailFromName(ownerName, clinicSlug);
   const marketingPhone = hasMarketing ? phoneFromSeed(seed + 17) : null;
-  const marketingEmail = hasMarketing
-    ? `marketing@${clinicSlug}.in`
-    : null;
+  const marketingEmail = hasMarketing ? `marketing@${clinicSlug}.in` : null;
 
   const platforms = buildPlatforms(seed, hasPracto, clinicName, city, specialty);
   const score =
@@ -222,7 +314,7 @@ function makeClinic({ city, zone, specialty, index }) {
     (seed % 10);
 
   return {
-    id: `clinic-${nanoid(10)}`,
+    id: `clinic-${hash(key).toString(36)}-${index}`,
     clinicName,
     specialty,
     city,
@@ -254,44 +346,21 @@ function makeClinic({ city, zone, specialty, index }) {
     score: Math.min(99, score),
     estimatedValue: 45000 + (seed % 20) * 12000 + (hasPracto ? 25000 : 0),
     suggestedChannel: !hasPracto ? 'whatsapp' : seed % 2 === 0 ? 'gmail' : 'calls',
-    matchReason: `Discovered via multi-platform scan for ${specialty} in ${zone}, ${city}.`,
+    matchReason: `Full multi-platform inventory for ${specialty} in ${zone}, ${city}.`,
   };
 }
 
-/** Density varies by specialty popularity in a zone */
-function clinicCountFor(specialty, seed) {
-  const base = {
-    Dentist: 8,
-    Dermatologist: 6,
-    Pediatrician: 7,
-    Orthopedic: 5,
-    Gynecologist: 6,
-    Ophthalmologist: 5,
-    ENT: 4,
-    'General Physician': 9,
-    Physiotherapy: 5,
-    'Diagnostics Lab': 4,
-  }[specialty] || 5;
-  return Math.max(3, base - (seed % 3));
-}
-
-function buildCatalog() {
-  const clinics = [];
+function estimateCatalogSize() {
+  let total = 0;
   for (const [city, zones] of Object.entries(GEO)) {
     for (const zone of zones) {
       for (const specialty of SPECIALTIES) {
-        const seed = hash(`${city}|${zone}|${specialty}`);
-        const count = clinicCountFor(specialty, seed);
-        for (let i = 0; i < count; i += 1) {
-          clinics.push(makeClinic({ city, zone, specialty, index: i }));
-        }
+        total += clinicCountFor(specialty, city, zone);
       }
     }
   }
-  return clinics;
+  return total;
 }
-
-const CATALOG = buildCatalog();
 
 export function getDiscoveryMeta() {
   return {
@@ -299,20 +368,39 @@ export function getDiscoveryMeta() {
     zonesByCity: GEO,
     specialties: SPECIALTIES,
     platforms: PLATFORMS,
-    catalogSize: CATALOG.length,
+    catalogSize: estimateCatalogSize(),
+    supportsAllZones: true,
   };
 }
 
+function resolveZones(city, zone) {
+  const cityZones = GEO[city] || [];
+  if (!zone || zone === 'All' || zone === 'All zones') return cityZones;
+  return cityZones.includes(zone) ? [zone] : [];
+}
+
 /**
- * Multi-platform clinic discovery for a city / zone / specialty.
- * Aggregates listings as if scanning Google Maps, Practo, Justdial, etc.
+ * Pull the full clinic inventory for a city / zone(s) / specialty.
+ * zone may be a specific zone or "All" / "All zones" for the entire city.
+ * No sampling — returns every generated listing for the selection.
  */
-export function discoverClinics({ city, zone, specialty, limit = 50 } = {}) {
-  if (!city || !zone || !specialty) {
+export function discoverClinics({ city, zone, specialty, limit = null } = {}) {
+  if (!city || !specialty) {
     return {
-      error: 'city, zone, and specialty are required',
+      error: 'city and specialty are required',
       results: [],
     };
+  }
+  if (!GEO[city]) {
+    return { error: `Unknown city: ${city}`, results: [] };
+  }
+  if (!SPECIALTIES.includes(specialty)) {
+    return { error: `Unknown specialty: ${specialty}`, results: [] };
+  }
+
+  const zones = resolveZones(city, zone || 'All');
+  if (!zones.length) {
+    return { error: `Unknown zone for ${city}: ${zone}`, results: [] };
   }
 
   const scannedSources = PLATFORMS.map((name, i) => ({
@@ -321,31 +409,49 @@ export function discoverClinics({ city, zone, specialty, limit = 50 } = {}) {
     latencyMs: 120 + i * 35 + (hash(`${city}${zone}${specialty}${name}`) % 80),
   }));
 
-  let results = CATALOG.filter(
-    (c) => c.city === city && c.zone === zone && c.specialty === specialty
-  );
+  const results = [];
+  const perZone = {};
+  for (const z of zones) {
+    const count = clinicCountFor(specialty, city, z);
+    perZone[z] = count;
+    for (let i = 0; i < count; i += 1) {
+      results.push(makeClinic({ city, zone: z, specialty, index: i }));
+    }
+  }
 
-  // Stable but varied order by score + name
-  results = [...results].sort((a, b) => b.score - a.score || a.clinicName.localeCompare(b.clinicName));
+  results.sort((a, b) => b.score - a.score || a.clinicName.localeCompare(b.clinicName) || a.zone.localeCompare(b.zone));
 
-  if (limit) results = results.slice(0, Math.min(Number(limit) || 50, 100));
+  // Optional safety cap only if explicitly requested; default = full inventory
+  let final = results;
+  const numericLimit = limit == null || limit === '' || Number(limit) <= 0 ? null : Number(limit);
+  if (numericLimit) {
+    final = results.slice(0, numericLimit);
+  }
 
-  const withPracto = results.filter((r) => r.practo.hasProfile).length;
-  const withoutPracto = results.length - withPracto;
+  const withPracto = final.filter((r) => r.practo.hasProfile).length;
 
   return {
-    query: { city, zone, specialty, limit: results.length },
+    query: {
+      city,
+      zone: zone || 'All',
+      specialty,
+      zonesScanned: zones,
+      limit: numericLimit,
+      fullInventory: !numericLimit,
+    },
     scannedSources,
     summary: {
-      total: results.length,
+      total: final.length,
+      totalAvailable: results.length,
+      zonesCovered: zones.length,
+      perZone,
       withPractoProfile: withPracto,
-      withoutPractoProfile: withoutPracto,
+      withoutPractoProfile: final.length - withPracto,
       platformsCovered: PLATFORMS.length,
     },
-    count: results.length,
-    results: results.map((r) => ({
+    count: final.length,
+    results: final.map((r) => ({
       ...r,
-      // Flatten helpers for import / table
       name: r.owner.name,
       email: r.owner.email,
       phone: r.owner.phone,
@@ -353,6 +459,8 @@ export function discoverClinics({ city, zone, specialty, limit = 50 } = {}) {
       title: r.owner.title,
       source: 'Multi-platform Discovery',
       location: `${r.zone}, ${r.city}`,
+      // stable import id
+      importKey: r.id || nanoid(8),
     })),
   };
 }

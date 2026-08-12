@@ -140,15 +140,19 @@ export function registerLeadRoutes(app) {
   app.post('/api/lead-generator/search', (req, res) => {
     const body = req.body || {};
     const city = body.city || body.location;
-    const { zone, specialty, limit = 50 } = body;
+    const { zone = 'All', specialty, limit = null } = body;
 
-    if (!city || !zone || !specialty) {
+    if (!city || !specialty) {
       return res.status(400).json({
-        error: 'Select city, zone, and specialty to discover clinics',
+        error: 'Select city and specialty to discover clinics (zone can be All)',
       });
     }
 
+    // Default: pull entire inventory for the selection (no small sample limit)
     const discovery = discoverClinics({ city, zone, specialty, limit });
+    if (discovery.error && !discovery.results?.length) {
+      return res.status(400).json({ error: discovery.error });
+    }
     res.json(discovery);
   });
 
