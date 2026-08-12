@@ -129,15 +129,75 @@ export function bootstrap() {
       callCompleted: 15,
       demoBooked: 30,
       proposalSent: 20,
+      sourceWeights: true,
     };
-    db.prepare('INSERT INTO lead_settings (key, value) VALUES (?, ?)').run(
-      'scoring_rules',
-      JSON.stringify(scoring)
-    );
-    db.prepare('INSERT INTO lead_settings (key, value) VALUES (?, ?)').run(
+    const insertSetting = db.prepare('INSERT INTO lead_settings (key, value) VALUES (?, ?)');
+    insertSetting.run('scoring_rules', JSON.stringify(scoring));
+    insertSetting.run(
       'auto_assign',
-      JSON.stringify({ enabled: false, roundRobin: true })
+      JSON.stringify({
+        enabled: false,
+        roundRobin: true,
+        strategy: 'round_robin',
+        agents: ['Unassigned'],
+      })
     );
+    insertSetting.run(
+      'enrichment',
+      JSON.stringify({
+        enabled: true,
+        pullCompanyData: true,
+        suggestScore: true,
+      })
+    );
+    insertSetting.run(
+      'notifications',
+      JSON.stringify({
+        newLead: true,
+        stageChange: true,
+        highScore: true,
+        assignment: true,
+      })
+    );
+  } else {
+    // Ensure newer keys exist on upgraded DBs
+    const get = db.prepare('SELECT value FROM lead_settings WHERE key = ?');
+    const upsert = db.prepare('INSERT OR REPLACE INTO lead_settings (key, value) VALUES (?, ?)');
+    if (!get.get('enrichment')) {
+      upsert.run(
+        'enrichment',
+        JSON.stringify({ enabled: true, pullCompanyData: true, suggestScore: true })
+      );
+    }
+    if (!get.get('notifications')) {
+      upsert.run(
+        'notifications',
+        JSON.stringify({
+          newLead: true,
+          stageChange: true,
+          highScore: true,
+          assignment: true,
+        })
+      );
+    }
+    const auto = get.get('auto_assign');
+    if (auto) {
+      try {
+        const parsed = JSON.parse(auto.value);
+        if (!parsed.strategy) {
+          upsert.run(
+            'auto_assign',
+            JSON.stringify({
+              ...parsed,
+              strategy: parsed.roundRobin ? 'round_robin' : 'manual',
+              agents: parsed.agents || ['Unassigned'],
+            })
+          );
+        }
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   const appCount = db.prepare('SELECT COUNT(*) as c FROM app_settings').get().c;

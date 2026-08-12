@@ -14,10 +14,30 @@ export default function LeadSettings() {
     try {
       const res = await api.getLeadSettings();
       setData(res);
-      setScoring(res.settings.scoring_rules);
-      setAutoAssign(res.settings.auto_assign);
-      setEnrichment(res.settings.enrichment);
-      setNotifications(res.settings.notifications);
+      setScoring(res.settings.scoring_rules || {
+        emailOpened: 5,
+        whatsappReplied: 12,
+        callCompleted: 15,
+        demoBooked: 30,
+        proposalSent: 20,
+        sourceWeights: true,
+      });
+      setAutoAssign(res.settings.auto_assign || {
+        enabled: false,
+        strategy: 'round_robin',
+        agents: ['Unassigned'],
+      });
+      setEnrichment(res.settings.enrichment || {
+        enabled: true,
+        pullCompanyData: true,
+        suggestScore: true,
+      });
+      setNotifications(res.settings.notifications || {
+        newLead: true,
+        stageChange: true,
+        highScore: true,
+        assignment: true,
+      });
     } catch (e) {
       toast(e.message);
     }
@@ -61,7 +81,7 @@ export default function LeadSettings() {
     }
   }
 
-  if (!data || !scoring) {
+  if (!data || !scoring || !autoAssign || !enrichment || !notifications) {
     return <div className="panel muted">Loading lead settings…</div>;
   }
 

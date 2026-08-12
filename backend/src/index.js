@@ -7,6 +7,7 @@ import './db/seed.js';
 import { authRequired } from './auth/middleware.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerLeadRoutes } from './routes/leads.js';
+import { registerContactRoutes } from './routes/contacts.js';
 import { registerAutopilotRoutes } from './routes/autopilot.js';
 import { registerSettingsRoutes } from './routes/settings.js';
 import { registerIntegrationRoutes } from './routes/integrations.js';
@@ -66,6 +67,7 @@ app.use('/api', (req, res, next) => {
 });
 
 registerLeadRoutes(app);
+registerContactRoutes(app);
 registerAutopilotRoutes(app);
 registerSettingsRoutes(app);
 registerIntegrationRoutes(app);

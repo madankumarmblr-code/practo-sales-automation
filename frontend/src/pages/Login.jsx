@@ -44,7 +44,11 @@ export default function Login() {
             User ID / Email
             <input
               required
+              name="username"
               autoComplete="username"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder="username or email"
               value={form.login}
               onChange={(e) => setForm({ ...form, login: e.target.value })}
@@ -54,8 +58,12 @@ export default function Login() {
             Password
             <input
               type="password"
+              name="password"
               required
               autoComplete="current-password"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
