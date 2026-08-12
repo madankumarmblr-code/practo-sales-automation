@@ -1,9 +1,14 @@
 import { nanoid } from 'nanoid';
 import db from '../db/db.js';
+import { discoverClinics, getDiscoveryMeta } from '../services/clinicDiscovery.js';
 
 const now = () => new Date().toISOString();
 
 export function registerLeadRoutes(app) {
+  app.get('/api/lead-generator/meta', (_req, res) => {
+    res.json(getDiscoveryMeta());
+  });
+
   app.get('/api/leads', (req, res) => {
     const { stage, status, source, q, assigned_to } = req.query;
     let rows = db.prepare('SELECT * FROM leads ORDER BY score DESC, updated_at DESC').all();
@@ -131,55 +136,20 @@ export function registerLeadRoutes(app) {
     res.json({ ok: true });
   });
 
-  // Lead generator — invents / discovers leads from criteria
+  // Lead generator — multi-platform clinic discovery by city / zone / specialty
   app.post('/api/lead-generator/search', (req, res) => {
-    const {
-      industry = 'healthcare',
-      location = 'Bangalore',
-      role = 'Clinic Owner',
-      channel = 'mixed',
-      limit = 8,
-    } = req.body || {};
+    const body = req.body || {};
+    const city = body.city || body.location;
+    const { zone, specialty, limit = 50 } = body;
 
-    const samples = [
-      { name: 'Dr. Kavitha Rao', company: 'Harmony Family Clinic', title: 'Owner', email: 'kavitha@harmony.clinic', phone: '+91 98001 11223' },
-      { name: 'Sanjay Pillai', company: 'Orbit Eye Care', title: 'Practice Manager', email: 'sanjay@orbit.eye', phone: '+91 98002 22334' },
-      { name: 'Dr. Fatima Sheikh', company: 'GreenLeaf Wellness', title: 'Medical Lead', email: 'fatima@greenleaf.care', phone: '+91 98003 33445' },
-      { name: 'Rohan Gupta', company: 'QuickLab Diagnostics', title: 'BD Manager', email: 'rohan@quicklab.in', phone: '+91 98004 44556' },
-      { name: 'Anita Bose', company: 'Little Steps Pediatrics', title: 'Admin Head', email: 'anita@littlesteps.clinic', phone: '+91 98005 55667' },
-      { name: 'Dr. Imran Ali', company: 'Summit Ortho', title: 'Partner', email: 'imran@summitortho.in', phone: '+91 98006 66778' },
-      { name: 'Lakshmi Krishnan', company: 'Aura Skin Studio', title: 'Founder', email: 'lakshmi@auraskin.com', phone: '+91 98007 77889' },
-      { name: 'Deepak Jain', company: 'CityCare Multi-Specialty', title: 'COO', email: 'deepak@citycare.in', phone: '+91 98008 88990' },
-      { name: 'Dr. Neha Joshi', company: 'Riverdale Dental', title: 'Principal Dentist', email: 'neha@riverdale.dental', phone: '+91 98009 99001' },
-      { name: 'Manish Aggarwal', company: 'VitalPath Labs', title: 'Growth Manager', email: 'manish@vitalpath.co', phone: '+91 98010 00112' },
-    ];
+    if (!city || !zone || !specialty) {
+      return res.status(400).json({
+        error: 'Select city, zone, and specialty to discover clinics',
+      });
+    }
 
-    const sourceMap = {
-      whatsapp: 'WhatsApp Campaign',
-      gmail: 'Gmail Outreach',
-      calls: 'Cold Call',
-      mixed: 'Clinic Directory',
-    };
-
-    const shuffled = [...samples].sort(() => Math.random() - 0.5).slice(0, Math.min(limit, samples.length));
-    const results = shuffled.map((s, i) => ({
-      id: `gen-${nanoid(8)}`,
-      ...s,
-      industry,
-      location,
-      role,
-      source: sourceMap[channel] || 'Clinic Directory',
-      score: 45 + Math.floor(Math.random() * 40),
-      estimatedValue: 40000 + Math.floor(Math.random() * 200000),
-      matchReason: `Matches ${role} in ${location} ${industry} — strong fit for Autopilot ${channel === 'mixed' ? 'multi-channel' : channel} outreach.`,
-      suggestedChannel: channel === 'mixed' ? ['whatsapp', 'gmail', 'calls'][i % 3] : channel,
-    }));
-
-    res.json({
-      query: { industry, location, role, channel, limit },
-      count: results.length,
-      results,
-    });
+    const discovery = discoverClinics({ city, zone, specialty, limit });
+    res.json(discovery);
   });
 
   app.post('/api/lead-generator/import', (req, res) => {
@@ -198,19 +168,37 @@ export function registerLeadRoutes(app) {
     const tx = db.transaction((items) => {
       for (const item of items) {
         const id = nanoid();
+        const owner = item.owner || {};
+        const marketing = item.marketingHead || null;
+        const practo = item.practo || {};
+        const platforms = item.platformNames || item.platforms?.map((p) => p.name) || [];
+        const notes = [
+          item.matchReason || 'Imported from multi-platform lead generator',
+          `Clinic: ${item.clinicName || item.company || ''}`,
+          `Specialty: ${item.specialty || ''}`,
+          `Location: ${item.zone || ''}, ${item.city || item.location || ''}`,
+          `Address: ${item.address || ''}`,
+          `Owner: ${owner.name || item.name || ''} | ${owner.phone || item.phone || ''} | ${owner.email || item.email || ''}`,
+          marketing
+            ? `Marketing Head: ${marketing.name} | ${marketing.phone || ''} | ${marketing.email || ''}`
+            : 'Marketing Head: Not listed',
+          `Practo profile: ${practo.hasProfile ? 'Yes' : 'No'}${practo.url ? ` (${practo.url})` : ''}`,
+          `Platforms: ${platforms.join(', ') || 'n/a'}`,
+        ].join('\n');
+
         insert.run(
           id,
-          item.name,
-          item.email || '',
-          item.phone || '',
-          item.company || '',
-          item.title || '',
-          item.source || 'Lead Generator',
+          owner.name || item.name,
+          owner.email || item.email || '',
+          owner.phone || item.phone || '',
+          item.clinicName || item.company || '',
+          owner.title || item.title || 'Clinic Owner',
+          item.source || 'Multi-platform Discovery',
           'new',
           item.score ?? 50,
           item.estimatedValue ?? item.value ?? 0,
-          `Engage via ${item.suggestedChannel || 'gmail'}`,
-          item.matchReason || 'Imported from lead generator',
+          `Engage via ${item.suggestedChannel || 'whatsapp'}`,
+          notes,
           ts,
           ts
         );

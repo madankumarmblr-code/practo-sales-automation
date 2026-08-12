@@ -370,6 +370,36 @@ table.data tr:hover td {
   grid-template-columns: 1fr 1fr;
 }
 
+.form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.discovery-table {
+  max-height: min(70vh, 820px);
+}
+
+.discovery-table table.data th,
+.discovery-table table.data td {
+  vertical-align: top;
+}
+
+.discovery-table table.data th:first-child,
+.discovery-table table.data td:first-child {
+  width: 36px;
+}
+
+.platform-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: 280px;
+}
+
+.source-scan {
+  border-top: 1px solid var(--line);
+  padding-top: 0.85rem;
+}
+
 label.field {
   display: flex;
   flex-direction: column;
@@ -647,7 +677,8 @@ label.field textarea:focus {
 
   .grid-2,
   .grid-3,
-  .form-grid.two {
+  .form-grid.two,
+  .form-grid.three {
     grid-template-columns: 1fr;
   }
 

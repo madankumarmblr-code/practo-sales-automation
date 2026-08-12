@@ -30,6 +30,7 @@ export const api = {
   deleteLead: (id) => request(`/api/leads/${id}`, { method: 'DELETE' }),
   searchLeads: (body) =>
     request('/api/lead-generator/search', { method: 'POST', body: JSON.stringify(body) }),
+  getLeadGeneratorMeta: () => request('/api/lead-generator/meta'),
   importLeads: (leads) =>
     request('/api/lead-generator/import', { method: 'POST', body: JSON.stringify({ leads }) }),
   getCampaigns: () => request('/api/autopilot/campaigns'),
