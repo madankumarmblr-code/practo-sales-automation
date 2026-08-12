@@ -17,6 +17,26 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL,
+    permissions TEXT NOT NULL DEFAULT '[]',
+    active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS contacts (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -86,6 +106,20 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS api_integrations (
+    id TEXT PRIMARY KEY,
+    provider TEXT NOT NULL UNIQUE,
+    label TEXT NOT NULL,
+    category TEXT NOT NULL,
+    enabled INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'ready',
+    config TEXT DEFAULT '{}',
+    secrets TEXT DEFAULT '{}',
+    last_tested_at TEXT,
+    notes TEXT DEFAULT '',
+    updated_at TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS lead_sources (

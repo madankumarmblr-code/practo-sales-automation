@@ -1,18 +1,69 @@
 const BASE = '';
+const TOKEN_KEY = 'practo_sales_token';
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY) || '';
+}
+
+export function setToken(token) {
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+}
 
 async function request(path, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
+    headers,
   });
+
+  if (res.status === 401 && !path.startsWith('/api/auth/login')) {
+    setToken('');
+    if (!window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login';
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'Request failed');
   }
+
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const contentType = res.headers.get('Content-Type') || '';
+  if (disposition.includes('attachment') || contentType.includes('text/csv')) {
+    return res;
+  }
   return res.json();
 }
 
+export async function downloadExport(resource, format = 'json') {
+  const res = await request(`/api/export/${resource}?format=${format}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${resource}.${format === 'csv' ? 'csv' : 'json'}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
+  login: (body) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+  me: () => request('/api/auth/me'),
+  getRoles: () => request('/api/auth/roles'),
+  getUsers: () => request('/api/users'),
+  createUser: (body) => request('/api/users', { method: 'POST', body: JSON.stringify(body) }),
+  updateUser: (id, body) => request(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   getDashboard: () => request('/api/dashboard'),
   getContacts: (q = '') => request(`/api/contacts${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createContact: (body) => request('/api/contacts', { method: 'POST', body: JSON.stringify(body) }),
@@ -48,4 +99,10 @@ export const api = {
   getSettings: () => request('/api/settings'),
   updateSettings: (body) => request('/api/settings', { method: 'PUT', body: JSON.stringify(body) }),
   getStages: () => request('/api/pipeline/stages'),
+  getIntegrations: () => request('/api/integrations'),
+  updateIntegration: (id, body) =>
+    request(`/api/integrations/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  testIntegration: (id) => request(`/api/integrations/${id}/test`, { method: 'POST' }),
+  createIntegration: (body) =>
+    request('/api/integrations', { method: 'POST', body: JSON.stringify(body) }),
 };

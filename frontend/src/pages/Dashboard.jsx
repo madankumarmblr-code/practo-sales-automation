@@ -27,6 +27,7 @@ export default function Dashboard() {
   }
 
   const { kpis, byStage, stages, activities, hotLeads } = data;
+  const isEmpty = !kpis.openLeads && !kpis.contacts && !(activities || []).length;
 
   return (
     <>
@@ -44,6 +45,18 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {isEmpty ? (
+        <div className="panel" style={{ marginBottom: '1rem' }}>
+          <h2 style={{ marginTop: 0 }}>Workspace is ready</h2>
+          <p className="muted">
+            No CRM demo data is loaded. Use Lead Generator to discover clinics, or add contacts and leads manually.
+          </p>
+          <Link className="btn btn-primary" to="/lead-generator">
+            Start with Lead Generator
+          </Link>
+        </div>
+      ) : null}
 
       <div className="grid grid-4" style={{ marginBottom: '1rem' }}>
         <div className="panel kpi">

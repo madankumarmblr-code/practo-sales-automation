@@ -7,8 +7,11 @@ import LeadGenerator from './pages/LeadGenerator';
 import LeadManagement from './pages/LeadManagement';
 import Autopilot from './pages/Autopilot';
 import LeadSettings from './pages/LeadSettings';
+import ApiIntegrations from './pages/ApiIntegrations';
 import Settings from './pages/Settings';
+import Login from './pages/Login';
 import { ToastContext } from './hooks/useToast';
+import { AuthProvider } from './hooks/useAuth';
 
 export default function App() {
   const [toast, setToast] = useState('');
@@ -20,18 +23,22 @@ export default function App() {
   }, [toast]);
 
   return (
-    <ToastContext.Provider value={setToast}>
-      <Routes>
-        <Route element={<Layout toast={toast} />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/contacts" element={<Contacts />} />
-          <Route path="/lead-generator" element={<LeadGenerator />} />
-          <Route path="/leads" element={<LeadManagement />} />
-          <Route path="/autopilot" element={<Autopilot />} />
-          <Route path="/lead-settings" element={<LeadSettings />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </ToastContext.Provider>
+    <AuthProvider>
+      <ToastContext.Provider value={setToast}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<Layout toast={toast} />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/lead-generator" element={<LeadGenerator />} />
+            <Route path="/leads" element={<LeadManagement />} />
+            <Route path="/autopilot" element={<Autopilot />} />
+            <Route path="/lead-settings" element={<LeadSettings />} />
+            <Route path="/api-integrations" element={<ApiIntegrations />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
+        </Routes>
+      </ToastContext.Provider>
+    </AuthProvider>
   );
 }

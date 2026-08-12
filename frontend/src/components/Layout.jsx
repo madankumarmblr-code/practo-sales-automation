@@ -1,38 +1,49 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
 const links = [
-  { to: '/', label: 'Dashboard', icon: '◈' },
-  { to: '/contacts', label: 'Contacts', icon: '◎' },
-  { to: '/lead-generator', label: 'Lead Generator', icon: '✦' },
-  { to: '/leads', label: 'Lead Management', icon: '▤' },
-  { to: '/autopilot', label: 'Autopilot AI', icon: '⚡' },
-  { to: '/lead-settings', label: 'Lead Settings', icon: '⚙' },
-  { to: '/settings', label: 'Settings', icon: '◇' },
+  { to: '/', label: 'Dashboard', icon: '◈', perm: 'dashboard:read' },
+  { to: '/contacts', label: 'Contacts', icon: '◎', perm: 'contacts:read' },
+  { to: '/lead-generator', label: 'Lead Generator', icon: '✦', perm: 'lead_generator:read' },
+  { to: '/leads', label: 'Lead Management', icon: '▤', perm: 'leads:read' },
+  { to: '/autopilot', label: 'Autopilot AI', icon: '⚡', perm: 'autopilot:read' },
+  { to: '/lead-settings', label: 'Lead Settings', icon: '⚙', perm: 'lead_settings:read' },
+  { to: '/api-integrations', label: 'API Integrations', icon: '⧉', perm: 'api_integrations:read' },
+  { to: '/settings', label: 'Settings', icon: '◇', perm: 'settings:read' },
 ];
 
 export default function Layout({ toast }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const { user, can, logout, loading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
+  if (loading) {
+    return <div className="login-page"><div className="muted">Loading workspace…</div></div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const visible = links.filter((l) => can(l.perm) || (l.perm === 'api_integrations:read' && can('settings:read')));
+
   return (
     <div className="app-shell">
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark">
-            <span>PS</span>
-          </div>
+          <img src="/practo-logo-light.svg" alt="Practo" className="practo-logo" />
           <div className="brand-text">
-            <strong>Practo Sales</strong>
-            <small>Automation Suite</small>
+            <strong>Sales Automation</strong>
+            <small>{user?.roleLabel} · Level {user?.level}</small>
           </div>
         </div>
         <nav className="nav">
-          {links.map((l) => (
+          {visible.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.to === '/'}>
               <span className="nav-icon">{l.icon}</span>
               {l.label}
@@ -40,9 +51,13 @@ export default function Layout({ toast }) {
           ))}
         </nav>
         <div className="sidebar-foot">
-          Workspace · India Growth
-          <br />
-          Autopilot channels live on WhatsApp & Gmail
+          <div style={{ marginBottom: 8 }}>
+            Signed in as <strong style={{ color: '#fff' }}>{user?.name}</strong>
+            <div>{user?.email}</div>
+          </div>
+          <button type="button" className="btn btn-ghost" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }} onClick={logout}>
+            Sign out
+          </button>
         </div>
       </aside>
       <div className="main">

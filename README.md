@@ -4,19 +4,14 @@ Full-stack sales automation suite for clinic and healthcare outreach.
 
 ## Features
 
-- **Dashboard** — pipeline KPIs, hot leads, recent activity
-- **Contacts** — CRM contacts with search and CRUD
-- **Lead Generator** — AI-style prospect discovery and import
-- **Lead Management** — board + table views, stage moves, scoring
-- **Autopilot AI** — WhatsApp, Gmail, and Calls campaigns with run-now simulation
-- **Lead Settings** — scoring rules, sources, enrichment, auto-assign
-- **Settings** — workspace profile, integrations, AI tone, notifications
-
-## Stack
-
-- **Frontend:** React + Vite
-- **Backend:** Express + better-sqlite3
-- **Data:** SQLite with demo seed data
+- **Permission-level login** — Admin, Manager, Sales Agent, Viewer
+- **Dashboard** — pipeline KPIs (starts empty — no demo CRM data)
+- **Contacts / Lead Management / Lead Generator**
+- **Autopilot AI** — WhatsApp, Gmail, Calls campaigns
+- **Lead Settings** — scoring, sources, enrichment
+- **API Integrations** — advanced ready-to-use connectors + export
+- **Settings** — workspace, users, JSON/CSV export
+- **Practo logo** branding
 
 ## Quick start
 
@@ -28,22 +23,18 @@ npm run dev
 - Web: http://localhost:5173
 - API: http://localhost:4000/api/health
 
-## Scripts
+### Default logins
 
-| Command | Description |
-|--------|-------------|
-| `npm run dev` | Start API + web together |
-| `npm run seed` | Re-seed database (noop if already seeded) |
-| `npm run build` | Build frontend (and backend pass-through) |
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@practo.sales` | `Admin@123` |
+| Manager | `manager@practo.sales` | `Manager@123` |
+| Sales Agent | `agent@practo.sales` | `Agent@123` |
+| Viewer | `viewer@practo.sales` | `Viewer@123` |
 
-## API overview
+CRM tables start **empty**. Use Lead Generator or manual entry to add data.
 
-- `GET /api/dashboard`
-- `GET/POST/PUT/DELETE /api/contacts`
-- `GET/POST/PUT/DELETE /api/leads`
-- `POST /api/lead-generator/search`
-- `POST /api/lead-generator/import`
-- `GET/POST/PUT /api/autopilot/campaigns`
-- `POST /api/autopilot/campaigns/:id/run`
-- `GET/PUT /api/lead-settings`
-- `GET/PUT /api/settings`
+## API Integrations
+
+Configure Practo, WhatsApp Meta, Gmail, Twilio, Google Maps, OpenAI, Justdial, and webhooks under **API Integrations**.  
+Export JSON/CSV from that page or **Settings → Export** (secrets are never exported).
