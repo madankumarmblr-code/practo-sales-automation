@@ -4,13 +4,10 @@ Full-stack sales automation suite for clinic and healthcare outreach.
 
 ## Features
 
-- **Permission-level login** — Admin, Manager, Sales Agent, Viewer
-- **Dashboard** — pipeline KPIs (starts empty — no demo CRM data)
-- **Contacts / Lead Management / Lead Generator**
-- **Autopilot AI** — WhatsApp, Gmail, Calls campaigns
-- **Lead Settings** — scoring, sources, enrichment
-- **API Integrations** — advanced ready-to-use connectors + export
-- **Settings** — workspace, users, JSON/CSV export
+- **Super Admin dashboard** — create users, set permission levels, passwords, system health & event logs
+- **Simple login** — user ID / email + password (no role picker)
+- **Lead Generator** — locations-sheet driven city → zone → keyword discovery
+- **Lead Management / Autopilot / Lead Settings / API Integrations / Settings**
 - **Practo logo** branding
 
 ## Quick start
@@ -23,27 +20,16 @@ npm run dev
 - Web: http://localhost:5173
 - API: http://localhost:4000/api/health
 
-### Default logins
+### Super Admin login
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | `admin@practo.sales` | `Admin@123` |
-| Manager | `manager@practo.sales` | `Manager@123` |
-| Sales Agent | `agent@practo.sales` | `Agent@123` |
-| Viewer | `viewer@practo.sales` | `Viewer@123` |
+| Field | Value |
+|------|-------|
+| User ID | `superadmin` |
+| Email | `superadmin@practo.sales` |
+| Password | `SuperAdmin@123` |
 
-CRM tables start **empty**. Use Lead Generator or manual entry to add data.
+Use **Super Admin** to create other users and assign roles/permissions. Those users then sign in with the credentials you set.
 
 ## Lead Generator
 
 Uses `backend/data/locations.csv` (city → zone → keyword mappings).
-
-1. Select **City** (e.g. Bangalore)
-2. Select **Zone / locality** (e.g. Indiranagar) or **All mapped zones**
-3. Select **Keyword / specialty** from sheet values (e.g. General Dentistry)
-
-Only combinations present in the sheet return leads.
-
-
-Configure Practo, WhatsApp Meta, Gmail, Twilio, Google Maps, OpenAI, Justdial, and webhooks under **API Integrations**.  
-Export JSON/CSV from that page or **Settings → Export** (secrets are never exported).

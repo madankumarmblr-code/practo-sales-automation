@@ -15,6 +15,7 @@ export function getUserFromToken(token) {
     id: user.id,
     name: user.name,
     email: user.email,
+    username: user.username || '',
     role: user.role,
     permissions: JSON.parse(user.permissions || '[]'),
   };

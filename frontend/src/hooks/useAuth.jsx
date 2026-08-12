@@ -28,7 +28,8 @@ export function AuthProvider({ children }) {
       user,
       loading,
       isAuthenticated: !!user,
-      can: (permission) => !!user?.permissions?.includes(permission),
+      can: (permission) =>
+        !!user?.permissions?.includes('*') || !!user?.permissions?.includes(permission),
       async login(payload) {
         const data = await api.login(payload);
         setToken(data.token);

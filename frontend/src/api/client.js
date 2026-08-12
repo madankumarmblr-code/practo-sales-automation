@@ -64,6 +64,12 @@ export const api = {
   getUsers: () => request('/api/users'),
   createUser: (body) => request('/api/users', { method: 'POST', body: JSON.stringify(body) }),
   updateUser: (id, body) => request(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteUser: (id) => request(`/api/users/${id}`, { method: 'DELETE' }),
+  getSystemEvents: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/api/system/events${qs ? `?${qs}` : ''}`);
+  },
+  getSystemHealth: () => request('/api/system/health'),
   getDashboard: () => request('/api/dashboard'),
   getContacts: (q = '') => request(`/api/contacts${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createContact: (body) => request('/api/contacts', { method: 'POST', body: JSON.stringify(body) }),

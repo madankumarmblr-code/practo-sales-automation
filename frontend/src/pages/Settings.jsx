@@ -8,30 +8,12 @@ export default function Settings() {
   const toast = useToast();
   const { can, user } = useAuth();
   const [settings, setSettings] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [userForm, setUserForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'agent',
-  });
-
-  async function load() {
-    try {
-      const s = await api.getSettings();
-      setSettings(s);
-      if (can('users:read')) {
-        setUsers(await api.getUsers());
-        setRoles(await api.getRoles());
-      }
-    } catch (e) {
-      toast(e.message);
-    }
-  }
 
   useEffect(() => {
-    load();
+    api
+      .getSettings()
+      .then(setSettings)
+      .catch((e) => toast(e.message));
   }, []);
 
   async function save() {
@@ -63,18 +45,6 @@ export default function Settings() {
     }
   }
 
-  async function createUser(e) {
-    e.preventDefault();
-    try {
-      await api.createUser(userForm);
-      toast('User created');
-      setUserForm({ name: '', email: '', password: '', role: 'agent' });
-      load();
-    } catch (err) {
-      toast(err.message);
-    }
-  }
-
   if (!settings) {
     return <div className="panel muted">Loading settings…</div>;
   }
@@ -88,7 +58,7 @@ export default function Settings() {
       <div className="topbar">
         <div>
           <h1>Settings</h1>
-          <p>Workspace profile, AI preferences, permission users, and data export.</p>
+          <p>Workspace profile, AI preferences, and data export.</p>
         </div>
         <div className="topbar-actions">
           {can('settings:write') ? (
@@ -213,10 +183,15 @@ export default function Settings() {
               disabled={!can('settings:write')}
             />
           </label>
-          <div style={{ marginTop: '1rem' }}>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Link className="btn btn-secondary" to="/api-integrations">
               Open API Integrations →
             </Link>
+            {user?.role === 'superadmin' || can('users:write') ? (
+              <Link className="btn btn-primary" to="/super-admin">
+                Super Admin dashboard →
+              </Link>
+            ) : null}
           </div>
         </div>
 
@@ -226,12 +201,11 @@ export default function Settings() {
             Download workspace data. Integration exports exclude secrets.
           </p>
           {!can('export:read') ? (
-            <div className="muted">Your permission level cannot export data.</div>
+            <div className="muted">Your account cannot export data.</div>
           ) : (
             <div className="export-grid">
               {[
                 ['leads', 'Leads'],
-                ['contacts', 'Contacts'],
                 ['campaigns', 'Campaigns'],
                 ['activities', 'Activities'],
                 ['integrations', 'API Integrations'],
@@ -255,86 +229,6 @@ export default function Settings() {
             </div>
           )}
         </div>
-
-        {can('users:read') ? (
-          <div className="panel" style={{ gridColumn: '1 / -1' }}>
-            <h2>Permission-level users</h2>
-            <p className="muted">Signed in as {user?.email} ({user?.roleLabel})</p>
-            <div className="table-wrap">
-              <table className="data">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Level</th>
-                    <th>Active</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id}>
-                      <td>{u.name}</td>
-                      <td>{u.email}</td>
-                      <td>
-                        <span className="badge badge-teal">{u.roleLabel}</span>
-                      </td>
-                      <td>{u.level}</td>
-                      <td>{u.active ? 'Yes' : 'No'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {can('users:write') ? (
-              <form className="form-grid two" style={{ marginTop: '1rem' }} onSubmit={createUser}>
-                <label className="field">
-                  Name
-                  <input
-                    required
-                    value={userForm.name}
-                    onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  Email
-                  <input
-                    type="email"
-                    required
-                    value={userForm.email}
-                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  Password
-                  <input
-                    type="password"
-                    required
-                    value={userForm.password}
-                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  Permission level
-                  <select
-                    value={userForm.role}
-                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                  >
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.label} (L{r.level})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button type="submit" className="btn btn-primary">
-                  Add user
-                </button>
-              </form>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     </>
   );

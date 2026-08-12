@@ -21,6 +21,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
+    username TEXT UNIQUE,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL,
     permissions TEXT NOT NULL DEFAULT '[]',
@@ -35,6 +36,17 @@ db.exec(`
     created_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS system_events (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    category TEXT NOT NULL,
+    message TEXT NOT NULL,
+    detail TEXT DEFAULT '',
+    user_id TEXT,
+    meta TEXT,
+    created_at TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS contacts (
@@ -136,6 +148,15 @@ db.exec(`
     color TEXT DEFAULT '#1DB8A0',
     position INTEGER DEFAULT 0
   );
+`);
+
+// Migrations for existing databases
+const userCols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+if (!userCols.includes('username')) {
+  db.exec('ALTER TABLE users ADD COLUMN username TEXT');
+}
+db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL AND username != ''
 `);
 
 export default db;

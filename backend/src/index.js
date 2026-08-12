@@ -4,12 +4,12 @@ import './db/db.js';
 import './db/seed.js';
 import { authRequired } from './auth/middleware.js';
 import { registerAuthRoutes } from './routes/auth.js';
-import { registerContactRoutes } from './routes/contacts.js';
 import { registerLeadRoutes } from './routes/leads.js';
 import { registerAutopilotRoutes } from './routes/autopilot.js';
 import { registerSettingsRoutes } from './routes/settings.js';
 import { registerIntegrationRoutes } from './routes/integrations.js';
 import { registerExportRoutes } from './routes/export.js';
+import { logEvent } from './services/logger.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,15 +23,32 @@ app.get('/api/health', (_req, res) => {
 
 registerAuthRoutes(app);
 
-// Protect all remaining API routes
+// Protect all remaining API routes (login is registered above)
 app.use('/api', (req, res, next) => {
-  if (req.path.startsWith('/auth/login') || req.path.startsWith('/auth/roles') || req.path === '/health') {
+  if (req.path === '/health' || req.path === '/auth/login') {
     return next();
   }
   return authRequired(req, res, next);
 });
 
-registerContactRoutes(app);
+// Structured request event logging for authenticated traffic
+app.use('/api', (req, res, next) => {
+  const started = Date.now();
+  res.on('finish', () => {
+    if (req.path === '/auth/login') return;
+    if (req.path.startsWith('/system/events')) return;
+    logEvent({
+      type: res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
+      category: 'api',
+      message: `${req.method} ${req.originalUrl}`,
+      detail: `status ${res.statusCode} in ${Date.now() - started}ms`,
+      userId: req.user?.id || null,
+      meta: { method: req.method, path: req.originalUrl, status: res.statusCode },
+    });
+  });
+  next();
+});
+
 registerLeadRoutes(app);
 registerAutopilotRoutes(app);
 registerSettingsRoutes(app);
@@ -40,6 +57,12 @@ registerExportRoutes(app);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
+  logEvent({
+    type: 'error',
+    category: 'system',
+    message: 'Unhandled API error',
+    detail: err.message || 'Internal server error',
+  });
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 

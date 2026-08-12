@@ -4,13 +4,13 @@ import { useAuth } from '../hooks/useAuth';
 
 const links = [
   { to: '/', label: 'Dashboard', icon: '◈', perm: 'dashboard:read' },
-  { to: '/contacts', label: 'Contacts', icon: '◎', perm: 'contacts:read' },
   { to: '/lead-generator', label: 'Lead Generator', icon: '✦', perm: 'lead_generator:read' },
   { to: '/leads', label: 'Lead Management', icon: '▤', perm: 'leads:read' },
   { to: '/autopilot', label: 'Autopilot AI', icon: '⚡', perm: 'autopilot:read' },
   { to: '/lead-settings', label: 'Lead Settings', icon: '⚙', perm: 'lead_settings:read' },
   { to: '/api-integrations', label: 'API Integrations', icon: '⧉', perm: 'api_integrations:read' },
   { to: '/settings', label: 'Settings', icon: '◇', perm: 'settings:read' },
+  { to: '/super-admin', label: 'Super Admin', icon: '★', perm: 'users:write' },
 ];
 
 export default function Layout({ toast }) {
@@ -30,7 +30,12 @@ export default function Layout({ toast }) {
     return <Navigate to="/login" replace />;
   }
 
-  const visible = links.filter((l) => can(l.perm) || (l.perm === 'api_integrations:read' && can('settings:read')));
+  const visible = links.filter(
+    (l) =>
+      can(l.perm) ||
+      (l.perm === 'api_integrations:read' && can('settings:read')) ||
+      (l.to === '/super-admin' && (user?.role === 'superadmin' || can('users:write')))
+  );
 
   return (
     <div className="app-shell">
@@ -39,7 +44,7 @@ export default function Layout({ toast }) {
           <img src="/practo-logo-light.svg" alt="Practo" className="practo-logo" />
           <div className="brand-text">
             <strong>Sales Automation</strong>
-            <small>{user?.roleLabel} · Level {user?.level}</small>
+            <small>{user?.roleLabel}{user?.username ? ` · @${user.username}` : ''}</small>
           </div>
         </div>
         <nav className="nav">

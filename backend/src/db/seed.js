@@ -197,59 +197,56 @@ export function bootstrap() {
     }
   }
 
-  const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-  if (userCount === 0) {
-    const ts = now();
-    const defaults = [
-      {
-        name: 'Admin User',
-        email: 'admin@practo.sales',
-        password: 'Admin@123',
-        role: 'admin',
-      },
-      {
-        name: 'Sales Manager',
-        email: 'manager@practo.sales',
-        password: 'Manager@123',
-        role: 'manager',
-      },
-      {
-        name: 'Sales Agent',
-        email: 'agent@practo.sales',
-        password: 'Agent@123',
-        role: 'agent',
-      },
-      {
-        name: 'Viewer',
-        email: 'viewer@practo.sales',
-        password: 'Viewer@123',
-        role: 'viewer',
-      },
-    ];
-    const insert = db.prepare(`
-      INSERT INTO users (id, name, email, password_hash, role, permissions, active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
-    `);
-    for (const u of defaults) {
-      insert.run(
-        nanoid(),
-        u.name,
-        u.email,
-        bcrypt.hashSync(u.password, 10),
-        u.role,
-        JSON.stringify(permissionsForRole(u.role)),
-        ts,
-        ts
-      );
-    }
-    console.log('Created default permission-level users (no demo CRM data)');
-    console.log('  admin@practo.sales / Admin@123');
-    console.log('  manager@practo.sales / Manager@123');
-    console.log('  agent@practo.sales / Agent@123');
-    console.log('  viewer@practo.sales / Viewer@123');
+  // Ensure Super Admin exists; remove old preset demo logins
+  const ts = now();
+  const presetEmails = [
+    'admin@practo.sales',
+    'manager@practo.sales',
+    'agent@practo.sales',
+    'viewer@practo.sales',
+  ];
+  for (const email of presetEmails) {
+    db.prepare('DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email = ?)').run(email);
+    db.prepare('DELETE FROM users WHERE email = ?').run(email);
   }
 
-  console.log('Bootstrap complete — CRM tables empty (no demo leads/contacts)');
+  let superAdmin = db
+    .prepare("SELECT * FROM users WHERE role = 'superadmin' OR username = 'superadmin' OR email = ?")
+    .get('superadmin@practo.sales');
+
+  if (!superAdmin) {
+    const id = nanoid();
+    db.prepare(`
+      INSERT INTO users (id, name, email, username, password_hash, role, permissions, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'superadmin', ?, 1, ?, ?)
+    `).run(
+      id,
+      'Super Admin',
+      'superadmin@practo.sales',
+      'superadmin',
+      bcrypt.hashSync('SuperAdmin@123', 10),
+      JSON.stringify(permissionsForRole('superadmin')),
+      ts,
+      ts
+    );
+    console.log('Created Super Admin user');
+    console.log('  username: superadmin');
+    console.log('  email:    superadmin@practo.sales');
+    console.log('  password: SuperAdmin@123');
+  } else {
+    // Keep role/permissions current for Super Admin account
+    db.prepare(`
+      UPDATE users
+      SET role = 'superadmin',
+          username = COALESCE(NULLIF(username, ''), 'superadmin'),
+          permissions = ?,
+          active = 1,
+          updated_at = ?
+      WHERE id = ?
+    `).run(JSON.stringify(permissionsForRole('superadmin')), ts, superAdmin.id);
+  }
+
+  console.log('Bootstrap complete — CRM tables empty; Super Admin ready');
 }
 
 bootstrap();
