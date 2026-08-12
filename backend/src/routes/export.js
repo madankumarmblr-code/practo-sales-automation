@@ -37,6 +37,11 @@ export function registerExportRoutes(app) {
         payload = db.prepare('SELECT * FROM activities ORDER BY created_at DESC').all();
         filename = 'activities';
         break;
+      case 'outreach':
+      case 'records':
+        payload = db.prepare('SELECT * FROM outreach_records ORDER BY created_at DESC').all();
+        filename = 'outreach-records';
+        break;
       case 'settings': {
         const app = db.prepare('SELECT * FROM app_settings').all();
         const lead = db.prepare('SELECT * FROM lead_settings').all();
@@ -67,6 +72,7 @@ export function registerExportRoutes(app) {
           contacts: db.prepare('SELECT * FROM contacts').all(),
           campaigns: db.prepare('SELECT * FROM autopilot_campaigns').all(),
           activities: db.prepare('SELECT * FROM activities').all(),
+          outreach_records: db.prepare('SELECT * FROM outreach_records').all(),
           pipeline_stages: db.prepare('SELECT * FROM pipeline_stages ORDER BY position').all(),
           lead_sources: db.prepare('SELECT * FROM lead_sources').all(),
           app_settings: db.prepare('SELECT * FROM app_settings').all(),
@@ -81,13 +87,26 @@ export function registerExportRoutes(app) {
       default:
         return res.status(400).json({
           error: 'Unknown export resource',
-          allowed: ['leads', 'contacts', 'campaigns', 'activities', 'settings', 'integrations', 'full'],
+          allowed: [
+            'leads',
+            'contacts',
+            'campaigns',
+            'activities',
+            'outreach',
+            'records',
+            'settings',
+            'integrations',
+            'full',
+          ],
         });
     }
 
     if (format === 'csv') {
       if (!Array.isArray(payload)) {
-        return res.status(400).json({ error: 'CSV export only supports tabular resources (leads, contacts, campaigns, activities, integrations)' });
+        return res.status(400).json({
+          error:
+            'CSV export only supports tabular resources (leads, contacts, campaigns, activities, outreach, integrations)',
+        });
       }
       const flat = payload.map((row) => {
         const out = {};

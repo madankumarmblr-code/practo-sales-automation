@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import db from '../db/db.js';
 import { requirePermission } from '../auth/middleware.js';
 import { CHANNELS, channelMeta } from '../services/channels/catalog.js';
+import { getDialogue } from '../services/channels/dialogues.js';
 import {
   listCampaigns,
   runCampaign,
@@ -9,6 +10,7 @@ import {
   getPlaybooks,
   resetDailyCountersIfNeeded,
 } from '../services/autopilotEngine.js';
+import { listOutreachRecords, catalogPayload } from '../services/outreach.js';
 
 const now = () => new Date().toISOString();
 
@@ -25,7 +27,32 @@ function parseCampaign(row) {
 
 export function registerAutopilotRoutes(app) {
   app.get('/api/autopilot/playbooks', requirePermission('autopilot:read'), (_req, res) => {
-    res.json({ channels: getPlaybooks(), catalog: CHANNELS });
+    res.json({ channels: getPlaybooks(), catalog: CHANNELS, ...catalogPayload() });
+  });
+
+  app.get('/api/autopilot/dialogues', requirePermission('autopilot:read'), (req, res) => {
+    const channel = (req.query.channel || '').toString();
+    const product = (req.query.product || '').toString();
+    const { products, dialogues } = catalogPayload();
+    res.json({
+      products,
+      dialogues: dialogues.filter(
+        (d) =>
+          (!channel || d.channel === channel) &&
+          (!product || product === 'all' || d.product === product)
+      ),
+    });
+  });
+
+  app.get('/api/autopilot/records', requirePermission('autopilot:read'), (req, res) => {
+    res.json({
+      records: listOutreachRecords({
+        channel: req.query.channel,
+        product: req.query.product,
+        q: req.query.q,
+        limit: req.query.limit,
+      }),
+    });
   });
 
   app.get('/api/autopilot/campaigns', requirePermission('autopilot:read'), (req, res) => {
@@ -43,27 +70,30 @@ export function registerAutopilotRoutes(app) {
       return res.status(400).json({ error: 'channel must be whatsapp, gmail, or calls' });
     }
     const meta = channelMeta(body.channel);
+    const dialogue = body.dialogue_id ? getDialogue(body.dialogue_id) : null;
     const id = nanoid();
     const ts = now();
     db.prepare(`
       INSERT INTO autopilot_campaigns (
         id, name, channel, status, goal, message_template, daily_limit, sent_today, success_rate,
         integration_id, subject, channel_config, ai_personalize, run_mode, last_run_day,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, NULL, ?, ?)
+        product_pitch, dialogue_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)
     `).run(
       id,
       body.name,
       body.channel,
       body.status || 'paused',
       body.goal || meta.defaultGoal,
-      body.message_template || meta.defaultTemplate,
+      body.message_template || dialogue?.body || meta.defaultTemplate,
       body.daily_limit ?? meta.defaultDailyLimit,
       body.integration_id || null,
-      body.subject || meta.defaultSubject,
+      body.subject || dialogue?.subject || meta.defaultSubject,
       JSON.stringify(body.channel_config || {}),
       body.ai_personalize ? 1 : 0,
       body.run_mode || 'live',
+      body.product_pitch || dialogue?.product || '',
+      body.dialogue_id || '',
       ts,
       ts
     );
@@ -78,7 +108,7 @@ export function registerAutopilotRoutes(app) {
       UPDATE autopilot_campaigns SET
         name=?, channel=?, status=?, goal=?, message_template=?, daily_limit=?,
         sent_today=?, success_rate=?, integration_id=?, subject=?, channel_config=?,
-        ai_personalize=?, run_mode=?, updated_at=?
+        ai_personalize=?, run_mode=?, product_pitch=?, dialogue_id=?, updated_at=?
       WHERE id=?
     `).run(
       b.name ?? existing.name,
@@ -94,6 +124,8 @@ export function registerAutopilotRoutes(app) {
       b.channel_config ? JSON.stringify(b.channel_config) : existing.channel_config || '{}',
       b.ai_personalize !== undefined ? (b.ai_personalize ? 1 : 0) : existing.ai_personalize || 0,
       b.run_mode ?? existing.run_mode ?? 'live',
+      b.product_pitch ?? existing.product_pitch ?? '',
+      b.dialogue_id ?? existing.dialogue_id ?? '',
       now(),
       req.params.id
     );

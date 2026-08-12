@@ -843,11 +843,25 @@ label.field textarea:focus {
   gap: 1.25rem;
 }
 
-.pilot-features {
-  margin: 0.75rem 0 0;
-  padding-left: 1.1rem;
-  color: var(--muted);
-  font-size: 0.86rem;
+.view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.template-box {
+  white-space: pre-wrap;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  font-family: inherit;
+  margin: 0.5rem 0;
+  max-height: 220px;
+  overflow: auto;
 }
 
 .pilot-features li {

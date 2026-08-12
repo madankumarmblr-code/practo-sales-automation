@@ -1,6 +1,8 @@
 import { nanoid } from 'nanoid';
 import db from '../db/db.js';
 import { authRequired, requirePermission } from '../auth/middleware.js';
+import { selfTestIntegration } from '../services/outreach.js';
+import { dialoguesFor, PRODUCTS } from '../services/channels/dialogues.js';
 
 const now = () => new Date().toISOString();
 
@@ -105,6 +107,34 @@ export function registerIntegrationRoutes(app) {
         testedAt: ts,
         integration: parseRow(db.prepare('SELECT * FROM api_integrations WHERE id = ?').get(req.params.id)),
       });
+    }
+  );
+
+  /** Send a self-test to the user's own phone or email */
+  app.post(
+    '/api/integrations/:id/self-test',
+    authRequired,
+    requirePermission('api_integrations:write'),
+    (req, res) => {
+      const existing = db.prepare('SELECT * FROM api_integrations WHERE id = ?').get(req.params.id);
+      if (!existing) return res.status(404).json({ error: 'Integration not found' });
+      try {
+        const result = selfTestIntegration(existing, {
+          phone: req.body?.phone,
+          email: req.body?.email,
+          product: req.body?.product || 'prime',
+          dialogue_id: req.body?.dialogue_id,
+          user: req.user,
+        });
+        res.json({
+          ...result,
+          integration: parseRow(db.prepare('SELECT * FROM api_integrations WHERE id = ?').get(req.params.id)),
+          products: PRODUCTS,
+          suggestedDialogues: dialoguesFor(existing.channel, req.body?.product || 'prime'),
+        });
+      } catch (err) {
+        res.status(err.status || 500).json({ error: err.message || 'Self-test failed' });
+      }
     }
   );
 

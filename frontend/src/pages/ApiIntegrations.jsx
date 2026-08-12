@@ -10,6 +10,9 @@ export default function ApiIntegrations() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [selfTest, setSelfTest] = useState(null);
+  const [selfForm, setSelfForm] = useState({ phone: '', email: '', product: 'prime' });
+  const [selfBusy, setSelfBusy] = useState(false);
 
   async function load() {
     try {
@@ -82,6 +85,33 @@ export default function ApiIntegrations() {
       load();
     } catch (e) {
       toast(e.message);
+    }
+  }
+
+  function openSelfTest(item) {
+    if (!['whatsapp', 'gmail', 'calls'].includes(item.channel)) {
+      toast('Self-test to your number/email is for WhatsApp, Gmail, and Calls');
+      return;
+    }
+    setSelfTest(item);
+    setSelfForm({ phone: '', email: '', product: 'prime' });
+  }
+
+  async function runSelfTest() {
+    if (!can('api_integrations:write')) {
+      toast('You do not have permission to test integrations');
+      return;
+    }
+    setSelfBusy(true);
+    try {
+      const res = await api.selfTestIntegration(selfTest.id, selfForm);
+      toast(res.message);
+      setSelfTest(null);
+      load();
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      setSelfBusy(false);
     }
   }
 
@@ -165,8 +195,13 @@ export default function ApiIntegrations() {
                         Configure
                       </button>
                       <button type="button" className="btn btn-secondary" onClick={() => test(item.id)}>
-                        Test
+                        Test creds
                       </button>
+                      {['whatsapp', 'gmail', 'calls'].includes(item.channel) ? (
+                        <button type="button" className="btn btn-primary" onClick={() => openSelfTest(item)}>
+                          Test on my {item.channel === 'gmail' ? 'email' : 'number'}
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -253,6 +288,63 @@ export default function ApiIntegrations() {
                   {busy ? 'Saving…' : 'Save integration'}
                 </button>
               ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {selfTest ? (
+        <div className="modal-backdrop" onClick={() => setSelfTest(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <header>
+              <h2>Test {selfTest.label} on your {selfTest.channel === 'gmail' ? 'email' : 'number'}</h2>
+              <button type="button" className="btn btn-ghost" onClick={() => setSelfTest(null)}>
+                Close
+              </button>
+            </header>
+            <div className="form-grid">
+              <p className="muted" style={{ margin: 0 }}>
+                Sends a self-test {selfTest.channel === 'calls' ? 'call script log' : selfTest.channel === 'gmail' ? 'email' : 'WhatsApp message'}
+                {' '}and stores it under Autopilot → Sent records.
+              </p>
+              {selfTest.channel === 'gmail' ? (
+                <label className="field">
+                  Your email
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@company.com"
+                    value={selfForm.email}
+                    onChange={(e) => setSelfForm({ ...selfForm, email: e.target.value })}
+                  />
+                </label>
+              ) : (
+                <label className="field">
+                  Your mobile number
+                  <input
+                    required
+                    placeholder="+91 9XXXXXXXXX"
+                    value={selfForm.phone}
+                    onChange={(e) => setSelfForm({ ...selfForm, phone: e.target.value })}
+                  />
+                </label>
+              )}
+              <label className="field">
+                Product pitching in test
+                <select
+                  value={selfForm.product}
+                  onChange={(e) => setSelfForm({ ...selfForm, product: e.target.value })}
+                >
+                  <option value="prime">Practo Prime</option>
+                  <option value="reach">Practo Reach</option>
+                  <option value="video">Video Shoot</option>
+                  <option value="prime_reach">Prime + Reach</option>
+                  <option value="full_suite">Full Enterprise Suite</option>
+                </select>
+              </label>
+              <button type="button" className="btn btn-primary" disabled={selfBusy} onClick={runSelfTest}>
+                {selfBusy ? 'Sending…' : 'Send self-test'}
+              </button>
             </div>
           </div>
         </div>

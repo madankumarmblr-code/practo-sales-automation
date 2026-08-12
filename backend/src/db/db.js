@@ -167,6 +167,8 @@ const campaignAlters = [
   ['ai_personalize', 'INTEGER DEFAULT 0'],
   ['run_mode', "TEXT DEFAULT 'live'"],
   ['last_run_day', 'TEXT'],
+  ['product_pitch', "TEXT DEFAULT ''"],
+  ['dialogue_id', "TEXT DEFAULT ''"],
 ];
 for (const [col, type] of campaignAlters) {
   if (!campaignCols.includes(col)) {

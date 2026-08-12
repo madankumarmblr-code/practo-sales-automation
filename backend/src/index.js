@@ -9,10 +9,12 @@ import { registerAutopilotRoutes } from './routes/autopilot.js';
 import { registerSettingsRoutes } from './routes/settings.js';
 import { registerIntegrationRoutes } from './routes/integrations.js';
 import { registerExportRoutes } from './routes/export.js';
+import { registerImportRoutes } from './routes/import.js';
 import { registerCommercialRoutes } from './routes/commercial.js';
 import { logEvent } from './services/logger.js';
 import { startSheetAutoSync } from './services/sheetSync.js';
 import { reloadLocationsIndex } from './services/locations.js';
+import './services/outreach.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -57,6 +59,7 @@ registerAutopilotRoutes(app);
 registerSettingsRoutes(app);
 registerIntegrationRoutes(app);
 registerExportRoutes(app);
+registerImportRoutes(app);
 registerCommercialRoutes(app);
 
 app.use((err, _req, res, _next) => {

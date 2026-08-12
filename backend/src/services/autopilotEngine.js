@@ -1,6 +1,8 @@
 import { nanoid } from 'nanoid';
 import db from '../db/db.js';
 import { channelMeta, personalizeTemplate } from './channels/catalog.js';
+import { getDialogue, productLabel } from './channels/dialogues.js';
+import { createOutreachRecord } from './outreach.js';
 
 const now = () => new Date().toISOString();
 
@@ -183,12 +185,17 @@ export function runCampaign(campaignId, { mode, limit } = {}) {
 
   const actions = [];
   const ts = now();
+  const dialogue = campaign.dialogue_id ? getDialogue(campaign.dialogue_id) : null;
+  const product = campaign.product_pitch || dialogue?.product || '';
+  const templateBody = campaign.message_template || dialogue?.body || meta.defaultTemplate;
+  const templateSubject = campaign.subject || dialogue?.subject || meta.defaultSubject;
+
   const tx = db.transaction(() => {
     for (const lead of leads) {
-      let body = personalizeTemplate(campaign.message_template || meta.defaultTemplate, lead, {
-        subject: campaign.subject || meta.defaultSubject,
+      let body = personalizeTemplate(templateBody, lead, {
+        subject: templateSubject,
       });
-      let subject = personalizeTemplate(campaign.subject || meta.defaultSubject, lead);
+      let subject = personalizeTemplate(templateSubject, lead);
 
       let aiUsed = false;
       if (campaign.ai_personalize) {
@@ -198,6 +205,8 @@ export function runCampaign(campaignId, { mode, limit } = {}) {
       }
 
       const detailParts = [
+        product ? `Product: ${productLabel(product)}` : null,
+        dialogue ? `Dialogue: ${dialogue.title}` : null,
         subject ? `Subject: ${subject}` : null,
         body.slice(0, 400),
         integration ? `via ${integration.label}` : null,
@@ -216,8 +225,30 @@ export function runCampaign(campaignId, { mode, limit } = {}) {
         ts
       );
 
+      createOutreachRecord({
+        channel: campaign.channel,
+        record_type: campaign.channel === 'calls' ? 'call' : campaign.channel === 'gmail' ? 'email' : 'message',
+        direction: runMode === 'dry_run' ? 'dry_run' : 'outbound',
+        to_phone: lead.phone || '',
+        to_email: lead.email || '',
+        product_pitch: product,
+        dialogue_id: dialogue?.id || campaign.dialogue_id || '',
+        dialogue_title: dialogue?.title || '',
+        subject,
+        body,
+        steps: dialogue?.steps || [],
+        campaign_id: campaign.id,
+        lead_id: lead.id,
+        lead_name: lead.name,
+        company: lead.company || '',
+        integration_id: integration?.id,
+        integration_label: integration?.label || '',
+        status: delivery,
+        detail: detailParts.join(' · '),
+      });
+
       if (runMode !== 'dry_run') {
-        updateLead.run(ts, `Await ${meta.short} reply`, ts, lead.id);
+        updateLead.run(ts, `Await ${meta.short} reply · ${productLabel(product) || meta.short}`, ts, lead.id);
       }
 
       actions.push({
@@ -225,6 +256,9 @@ export function runCampaign(campaignId, { mode, limit } = {}) {
         leadName: lead.name,
         company: lead.company,
         channel: campaign.channel,
+        product: product || null,
+        productLabel: product ? productLabel(product) : null,
+        dialogue: dialogue?.title || null,
         to: meta.requires === 'email' ? lead.email : lead.phone,
         subject: subject || null,
         preview: body.slice(0, 120),

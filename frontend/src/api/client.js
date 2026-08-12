@@ -121,6 +121,42 @@ export const api = {
   deleteCampaign: (id) => request(`/api/autopilot/campaigns/${id}`, { method: 'DELETE' }),
   runCampaign: (id, body = {}) =>
     request(`/api/autopilot/campaigns/${id}/run`, { method: 'POST', body: JSON.stringify(body) }),
+  getAutopilotDialogues: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString();
+    return request(`/api/autopilot/dialogues${qs ? `?${qs}` : ''}`);
+  },
+  getOutreachRecords: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString();
+    return request(`/api/autopilot/records${qs ? `?${qs}` : ''}`);
+  },
+  selfTestIntegration: (id, body) =>
+    request(`/api/integrations/${id}/self-test`, { method: 'POST', body: JSON.stringify(body) }),
+  listImportTemplates: () => request('/api/import/templates'),
+  importResource: (resource, body) =>
+    request(`/api/import/${resource}`, { method: 'POST', body: JSON.stringify(body) }),
+  downloadImportTemplate: async (resource) => {
+    const token = getToken();
+    const res = await fetch(`/api/import/templates/${resource}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Template download failed');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${resource}-import-template.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
   getLeadSettings: () => request('/api/lead-settings'),
   updateLeadSettings: (body) =>
     request('/api/lead-settings', { method: 'PUT', body: JSON.stringify(body) }),
