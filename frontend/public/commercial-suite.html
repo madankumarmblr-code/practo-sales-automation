@@ -175,26 +175,6 @@
 <body>
 
 <!-- LOGIN GATE MODAL -->
-<div id="loginModal" class="login-overlay">
-    <div class="login-card">
-        <svg width="120" height="35" viewBox="0 0 120 35" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 24px;">
-            <text x="0" y="26" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="800" font-size="32" fill="#28328C" letter-spacing="-1.5">practo</text>
-            <circle cx="106" cy="22" r="5" fill="#14B8A6"/>
-        </svg>
-        <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; color: var(--text-main);">Enterprise Commercial Suite</h3>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 24px;">Default credentials: <strong>practo</strong> / <strong>practo</strong></p>
-        
-        <div class="form-group" style="text-align: left;">
-            <label>User ID</label>
-            <input type="text" id="loginUser" placeholder="User ID" value="practo">
-        </div>
-        <div class="form-group" style="text-align: left;">
-            <label>Password</label>
-            <input type="password" id="loginPass" placeholder="Password" value="practo">
-        </div>
-        <button class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 12px;" onclick="handleLogin()">Sign In</button>
-        <div id="loginError" style="color: #E11D48; font-size: 0.75rem; font-weight: 700; margin-top: 12px; display: none;">Invalid User ID or Password</div>
-    </div>
 </div>
 
 <!-- TOP NAV -->
@@ -210,7 +190,6 @@
     <div class="nav-actions">
         <div id="headerStatus"><span class="status-pill pill-warning">Awaiting Database Sync</span></div>
         <button class="btn-settings" onclick="openSettings()">⚙️ Settings</button>
-        <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
     </div>
 </div>
 
@@ -467,9 +446,7 @@
             
             <div class="section-title">Authentication & Access</div>
             <div class="grid-2">
-                <div class="form-group"><label>Login User ID</label><input type="text" id="settingLoginUser" value="practo"></div>
-                <div class="form-group"><label>Login Password</label><input type="text" id="settingLoginPass" value="practo"></div>
-            </div>
+                </div>
 
             <div class="section-title">Seller Information (Customizable)</div>
             <div class="grid-2">
@@ -569,19 +546,8 @@
         emailTemp: `Dear Doctor,\n\nThank you for taking the time to discuss Practo's digital solutions for your clinic.\n\nSummary of Services:\n[ITEMS]\nNet Payable Amount: ₹[NET_AMOUNT]\n\nPlease review the proposal and reply if you have any questions.\n\nBest Regards,\n[SENDER_NAME]\nPracto Enterprise Team`
     };
 
-    const EMBEDDED = new URLSearchParams(location.search).get('embed') === '1'
-        || (window.parent && window.parent !== window);
-
     window.onload = function() {
-        if (EMBEDDED) {
-            sessionStorage.setItem('practoAuthActive', 'true');
-            const loginEl = document.getElementById('loginModal');
-            if (loginEl) loginEl.style.display = 'none';
-            const logoutBtn = document.querySelector('.btn-logout');
-            if (logoutBtn) logoutBtn.style.display = 'none';
-        } else {
-            checkAuth();
-        }
+        // Auth handled by Sales Automation parent app — no suite login
         document.getElementById('invoiceDate').innerText = 'Issued: ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
         
         loadSettings(); 
@@ -653,35 +619,10 @@
         triggerUpdate();
     }
 
-    // --- AUTHENTICATION ---
-    function checkAuth() {
-        const isAuth = sessionStorage.getItem('practoAuthActive');
-        if (isAuth !== 'true') {
-            document.getElementById('loginModal').style.display = 'flex';
-        } else {
-            document.getElementById('loginModal').style.display = 'none';
-        }
-    }
-
-    function handleLogin() {
-        const u = document.getElementById('loginUser').value.trim();
-        const p = document.getElementById('loginPass').value.trim();
-        const storedU = localStorage.getItem('practoSettingLoginUser') || appSettings.loginUser;
-        const storedP = localStorage.getItem('practoSettingLoginPass') || appSettings.loginPass;
-
-        if (u === storedU && p === storedP) {
-            sessionStorage.setItem('practoAuthActive', 'true');
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('loginError').style.display = 'none';
-        } else {
-            document.getElementById('loginError').style.display = 'block';
-        }
-    }
-
-    function handleLogout() {
-        sessionStorage.removeItem('practoAuthActive');
-        location.reload();
-    }
+    // --- AUTHENTICATION (disabled — use Sales Automation login) ---
+    function checkAuth() { /* no-op */ }
+    function handleLogin() { /* no-op */ }
+    function handleLogout() { /* no-op */ }
 
     // --- DOCUMENT TYPE TOGGLE ---
     function toggleDocumentType() {
@@ -727,8 +668,6 @@
         appSettings.gst = localStorage.getItem('practoSettingGst') || 18;
         appSettings.tds = localStorage.getItem('practoSettingTds') || 2;
         appSettings.sheetUrl = localStorage.getItem('practoSettingSheetUrl') || appSettings.sheetUrl;
-        appSettings.loginUser = localStorage.getItem('practoSettingLoginUser') || appSettings.loginUser;
-        appSettings.loginPass = localStorage.getItem('practoSettingLoginPass') || appSettings.loginPass;
 
         appSettings.sellerName = localStorage.getItem('settingSellerName') || appSettings.sellerName;
         appSettings.sellerTan = localStorage.getItem('settingSellerTan') || appSettings.sellerTan;
@@ -758,8 +697,6 @@
         document.getElementById('settingGst').value = appSettings.gst;
         document.getElementById('settingTds').value = appSettings.tds;
         document.getElementById('settingSheetUrl').value = appSettings.sheetUrl;
-        document.getElementById('settingLoginUser').value = appSettings.loginUser;
-        document.getElementById('settingLoginPass').value = appSettings.loginPass;
 
         document.getElementById('settingSellerName').value = appSettings.sellerName;
         document.getElementById('settingSellerTan').value = appSettings.sellerTan;
@@ -796,8 +733,6 @@
         appSettings.gst = document.getElementById('settingGst').value;
         appSettings.tds = document.getElementById('settingTds').value;
         appSettings.sheetUrl = document.getElementById('settingSheetUrl').value;
-        appSettings.loginUser = document.getElementById('settingLoginUser').value;
-        appSettings.loginPass = document.getElementById('settingLoginPass').value;
 
         appSettings.sellerName = document.getElementById('settingSellerName').value;
         appSettings.sellerTan = document.getElementById('settingSellerTan').value;
@@ -827,8 +762,6 @@
         localStorage.setItem('practoSettingGst', appSettings.gst);
         localStorage.setItem('practoSettingTds', appSettings.tds);
         localStorage.setItem('practoSettingSheetUrl', appSettings.sheetUrl);
-        localStorage.setItem('practoSettingLoginUser', appSettings.loginUser);
-        localStorage.setItem('practoSettingLoginPass', appSettings.loginPass);
 
         localStorage.setItem('settingSellerName', appSettings.sellerName);
         localStorage.setItem('settingSellerTan', appSettings.sellerTan);

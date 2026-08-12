@@ -269,12 +269,17 @@ export function discoverClinics({
   limit = null,
 } = {}) {
   const kw = keyword || specialty;
-  const resolved = resolveDiscoveryTargets({ city, zone, keyword: kw });
-  if (resolved.error) {
-    return { error: resolved.error, results: [], count: 0 };
+  let targets;
+  try {
+    targets = resolveDiscoveryTargets({ city, zone, keyword: kw });
+  } catch (err) {
+    return { error: err.message || 'Discovery failed', results: [], count: 0 };
   }
 
-  const { targets } = resolved;
+  if (!Array.isArray(targets) || !targets.length) {
+    return { error: 'No matching sheet targets', results: [], count: 0 };
+  }
+
   const scannedSources = PLATFORMS.map((name, i) => ({
     name,
     status: 'scanned',
@@ -285,7 +290,7 @@ export function discoverClinics({
   const perZone = {};
   for (const combo of targets) {
     const count = clinicCountFor(combo);
-    perZone[combo.zone] = count;
+    perZone[combo.zone] = (perZone[combo.zone] || 0) + count;
     for (let i = 0; i < count; i += 1) {
       results.push(
         makeClinic({
