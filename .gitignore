@@ -8,3 +8,4 @@ build/
 backend/data/
 *.log
 .vite/
+*.webp
