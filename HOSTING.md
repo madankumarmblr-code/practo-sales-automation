@@ -118,3 +118,42 @@ Browser ──► :8080 ──► Express
                         ├─ /api/*     JSON API + SQLite
                         └─ /*         React SPA (frontend/dist)
 ```
+
+## Option D — Cloudflare Pages (UI only)
+
+This repo is an **npm workspaces** monorepo (Express + SQLite). It cannot run as a Cloudflare Worker.
+
+`npx wrangler deploy` at the repo root fails with:
+
+> The Cloudflare application detection logic has been run in the root of a workspace…
+
+Use **Pages** against the Vite build output instead.
+
+### Cloudflare dashboard settings
+
+| Setting | Value |
+|---------|--------|
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler pages deploy frontend/dist --project-name=practo-sales-automation` |
+| Build output / Pages dir | `frontend/dist` (also set in root `wrangler.toml`) |
+
+Or from a machine with Cloudflare auth:
+
+```bash
+npm run deploy:cf
+```
+
+(`wrangler.toml` sets `pages_build_output_dir = "frontend/dist"`.)
+
+### API still needs a Node host
+
+Pages only serves the static UI. Host the API with Docker / VPS (Options A–C), then build the UI with an absolute API origin:
+
+```bash
+VITE_API_BASE=https://api.yourdomain.com npm run build
+npx wrangler pages deploy frontend/dist --project-name=practo-sales-automation
+```
+
+On the API host, set `CORS_ORIGIN` to your Pages URL (e.g. `https://practo-sales-automation.pages.dev`).
+
+For a **working app in one place**, prefer Docker (Option A) — do not use Cloudflare for the full stack.

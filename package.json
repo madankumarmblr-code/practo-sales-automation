@@ -17,10 +17,13 @@
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f"
+    "docker:logs": "docker compose logs -f",
+    "deploy": "wrangler pages deploy frontend/dist --project-name=practo-sales-automation",
+    "deploy:cf": "npm run build && npm run deploy"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "wrangler": "^4.122.0"
   },
   "engines": {
     "node": ">=20"
