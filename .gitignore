@@ -11,6 +11,7 @@ backend/data/*.db-shm
 backend/data/*.db-wal
 backend/data/locations-sheet.csv
 backend/data/locations-sheet.meta.json
+data/
 *.log
 .vite/
 *.webp
