@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
 import './db/db.js';
 import './db/seed.js';
 import { authRequired } from './auth/middleware.js';
@@ -14,16 +16,25 @@ import { registerCommercialRoutes } from './routes/commercial.js';
 import { logEvent } from './services/logger.js';
 import { startSheetAutoSync } from './services/sheetSync.js';
 import { reloadLocationsIndex } from './services/locations.js';
+import { getFrontendDistDir } from './config.js';
 import './services/outreach.js';
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT || 4000);
+const HOST = process.env.HOST || '0.0.0.0';
+const isProd = process.env.NODE_ENV === 'production';
 
-app.use(cors());
+app.disable('x-powered-by');
+app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'practo-sales-api', time: new Date().toISOString() });
+  res.json({
+    ok: true,
+    service: 'practo-sales-api',
+    env: isProd ? 'production' : 'development',
+    time: new Date().toISOString(),
+  });
 });
 
 registerAuthRoutes(app);
@@ -62,6 +73,23 @@ registerExportRoutes(app);
 registerImportRoutes(app);
 registerCommercialRoutes(app);
 
+// Production: serve Vite build (SPA) from the same port as the API
+const distDir = getFrontendDistDir();
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir, { index: false, maxAge: isProd ? '1h' : 0 }));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(distDir, 'index.html'), (err) => {
+      if (err) next();
+    });
+  });
+  console.log(`Serving frontend from ${distDir}`);
+} else if (isProd) {
+  console.warn(`Frontend dist not found at ${distDir}. Run: npm run build`);
+}
+
 app.use((err, _req, res, _next) => {
   console.error(err);
   logEvent({
@@ -73,10 +101,12 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Practo Sales API listening on http://0.0.0.0:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Practo Sales listening on http://${HOST}:${PORT}`);
+  if (fs.existsSync(distDir)) {
+    console.log(`Open http://${HOST}:${PORT} (API + UI)`);
+  }
   startSheetAutoSync();
-  // Rebuild location index after first sync settles
   setTimeout(() => {
     try {
       reloadLocationsIndex();

@@ -10,11 +10,19 @@
     "dev": "concurrently -n api,web -c teal,cyan \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
-    "build": "npm run build -w backend && npm run build -w frontend",
-    "start": "npm run start -w backend",
-    "seed": "npm run seed -w backend"
+    "build": "npm run build -w frontend",
+    "start": "NODE_ENV=production node backend/src/index.js",
+    "start:prod": "npm run build && npm start",
+    "seed": "npm run seed -w backend",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

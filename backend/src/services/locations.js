@@ -1,11 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { parseCsv } from "./csvParse.js";
 import { getCachedCsvPath, syncSheetFromGoogle, getSheetSyncMeta } from "./sheetSync.js";
+import { getDataDir } from "../config.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LEGACY_CSV = path.join(__dirname, "../../data/locations.csv");
+const LEGACY_CSV = path.join(getDataDir(), "locations.csv");
 
 /** @type {{ byCity: Map<string, Map<string, Set<string>>>, rows: object[], source: string } | null} */
 let cache = null;

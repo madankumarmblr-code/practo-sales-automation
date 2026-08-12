@@ -2,17 +2,18 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logEvent } from './logger.js';
+import { getDataDir } from '../config.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, '../../data');
+const DATA_DIR = getDataDir();
 const CACHE_PATH = path.join(DATA_DIR, 'locations-sheet.csv');
 const META_PATH = path.join(DATA_DIR, 'locations-sheet.meta.json');
 
 /** Live Google Sheet (published CSV) — inventory + location mappings */
 export const SHEET_CSV_URL =
+  process.env.SHEET_CSV_URL ||
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv';
 
-const SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const SYNC_INTERVAL_MS = Number(process.env.SHEET_SYNC_MINUTES || 15) * 60 * 1000;
 
 let syncTimer = null;
 let lastSync = null;

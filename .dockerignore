@@ -1,0 +1,24 @@
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Dependencies / build
+node_modules
+npm-debug.log*
+.git
+.github
+.cursor
+*.md
+!README.md
+
+# Local data & env
+.env
+.env.*
+backend/data
+*.db
+*.db-*
+dist
+.vite
+coverage
+uploads
