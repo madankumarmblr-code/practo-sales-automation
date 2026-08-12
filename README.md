@@ -39,9 +39,9 @@ npm run build
 NODE_ENV=production PORT=8080 npm start
 ```
 
-Full steps, Nginx, env vars, Cloudflare, and systemd: see **[HOSTING.md](./HOSTING.md)** and **[CLOUDFLARE.md](./CLOUDFLARE.md)**.
+Full steps, Nginx, env vars, Vercel, and systemd: see **[HOSTING.md](./HOSTING.md)** and **[VERCEL.md](./VERCEL.md)**.
 
-> **Cloudflare:** Build `npm run build`, Deploy `npx wrangler deploy` (repo root). That deploys the static UI only — host the Express + SQLite API on Docker/VPS.
+> **Vercel:** Import the repo — `vercel.json` builds `frontend/dist` automatically. That hosts the static UI only; run the Express + SQLite API on Docker/VPS (set `VITE_API_BASE` if split).
 
 ### Super Admin login
 

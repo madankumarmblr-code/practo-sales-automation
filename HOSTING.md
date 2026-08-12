@@ -119,28 +119,20 @@ Browser ──► :8080 ──► Express
                         └─ /*         React SPA (frontend/dist)
 ```
 
-## Option D — Cloudflare Workers (UI only)
+## Option D — Vercel (UI only)
 
-See **[CLOUDFLARE.md](./CLOUDFLARE.md)** for the short checklist.
+See **[VERCEL.md](./VERCEL.md)**.
 
-Use these Workers Builds settings (matches Cloudflare defaults for this repo):
-
-| Setting | Value |
-|---------|--------|
-| Build command | `npm run build` |
-| Deploy command | `npx wrangler deploy` |
-
-Root `wrangler.toml` serves `frontend/dist` as a static SPA (`[assets]` + SPA not-found handling). That avoids the old npm-workspaces detection error.
+Import the GitHub repo in Vercel. Root `vercel.json` already sets install/build/output and SPA rewrites.
 
 ### API still needs a Node host
 
-Cloudflare only hosts the static UI. Host the API with Docker / VPS (Options A–C), then build the UI with an absolute API origin:
+Vercel only hosts the static UI. Host the API with Docker / VPS (Options A–C), then set a Vercel env var:
 
 ```bash
-VITE_API_BASE=https://api.yourdomain.com npm run build
-npx wrangler deploy
+VITE_API_BASE=https://api.yourdomain.com
 ```
 
-On the API host, set `CORS_ORIGIN` to your Workers URL.
+On the API host, set `CORS_ORIGIN` to your Vercel URL.
 
 For a **working app in one place**, prefer Docker (Option A).
