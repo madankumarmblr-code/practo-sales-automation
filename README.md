@@ -34,7 +34,16 @@ npm run dev
 
 CRM tables start **empty**. Use Lead Generator or manual entry to add data.
 
-## API Integrations
+## Lead Generator
+
+Uses `backend/data/locations.csv` (city → zone → keyword mappings).
+
+1. Select **City** (e.g. Bangalore)
+2. Select **Zone / locality** (e.g. Indiranagar) or **All mapped zones**
+3. Select **Keyword / specialty** from sheet values (e.g. General Dentistry)
+
+Only combinations present in the sheet return leads.
+
 
 Configure Practo, WhatsApp Meta, Gmail, Twilio, Google Maps, OpenAI, Justdial, and webhooks under **API Integrations**.  
 Export JSON/CSV from that page or **Settings → Export** (secrets are never exported).
