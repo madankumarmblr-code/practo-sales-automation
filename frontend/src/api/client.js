@@ -1,4 +1,5 @@
-const BASE = '';
+// Same-origin by default (Docker/Node single-port). For Cloudflare Pages UI + separate API, set VITE_API_BASE at build time.
+const BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 const TOKEN_KEY = 'practo_sales_token';
 
 export function getToken() {
@@ -140,7 +141,7 @@ export const api = {
     request(`/api/import/${resource}`, { method: 'POST', body: JSON.stringify(body) }),
   downloadImportTemplate: async (resource) => {
     const token = getToken();
-    const res = await fetch(`/api/import/templates/${resource}`, {
+    const res = await fetch(`${BASE}/api/import/templates/${resource}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) {
