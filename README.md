@@ -39,9 +39,9 @@ npm run build
 NODE_ENV=production PORT=8080 npm start
 ```
 
-Full steps, Nginx, env vars, Cloudflare Pages (UI-only), and systemd: see **[HOSTING.md](./HOSTING.md)**.
+Full steps, Nginx, env vars, Cloudflare, and systemd: see **[HOSTING.md](./HOSTING.md)** and **[CLOUDFLARE.md](./CLOUDFLARE.md)**.
 
-> **Cloudflare:** do not use `npx wrangler deploy` at the repo root (npm workspaces). Use `npm run deploy` / `wrangler pages deploy frontend/dist` for the static UI, and host the Express + SQLite API on Docker/VPS.
+> **Cloudflare:** Build `npm run build`, Deploy `npx wrangler deploy` (repo root). That deploys the static UI only — host the Express + SQLite API on Docker/VPS.
 
 ### Super Admin login
 

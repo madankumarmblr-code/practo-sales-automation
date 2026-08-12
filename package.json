@@ -10,7 +10,7 @@
     "dev": "concurrently -n api,web -c teal,cyan \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
-    "build": "npm run build -w frontend",
+    "build": "node scripts/ensure-esbuild.mjs && npm run build -w frontend",
     "start": "NODE_ENV=production node backend/src/index.js",
     "start:prod": "npm run build && npm start",
     "seed": "npm run seed -w backend",
@@ -18,8 +18,9 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "deploy": "wrangler pages deploy frontend/dist --project-name=practo-sales-automation",
-    "deploy:cf": "npm run build && npm run deploy"
+    "deploy": "node scripts/cf-deploy.mjs",
+    "deploy:cf": "npm run build && npm run deploy",
+    "cf:check": "npm run build && node scripts/cf-deploy.mjs --dry-run"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
