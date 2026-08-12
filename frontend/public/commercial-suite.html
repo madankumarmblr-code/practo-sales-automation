@@ -276,6 +276,13 @@
                 <input type="checkbox" id="toggle-video" onchange="toggleSection('video')">
                 <div><h4>Video Shoot</h4><p>Complimentary On-Site Profile</p></div>
             </label>
+            <div id="section-video" class="config-section">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Number of Video Shoots</label>
+                    <input type="number" id="videoShootCount" value="1" min="1" max="20" step="1" oninput="triggerUpdate()">
+                </div>
+                <p style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Each shoot is complimentary and listed separately on the proposal.</p>
+            </div>
         </div>
 
         <div class="section-title">Commercial & Document Details</div>
@@ -304,13 +311,14 @@
             <!-- UPDATED DISCOUNT & TAX GRID -->
             <div class="grid-2">
                 <div class="form-group">
-                    <label>Discount (%)</label>
+                    <label>Overall Extra Discount (%) — optional</label>
                     <input type="number" id="discountPercent" value="0" min="0" max="100" oninput="triggerUpdate()">
                 </div>
                 <div class="form-group">
-                    <label>Discount Amt / Month (₹)</label>
+                    <label>Overall Extra Discount Amt / Month (₹)</label>
                     <input type="number" id="discountAmount" value="0" min="0" oninput="updateDiscountPercentSync()">
                 </div>
+                <p style="grid-column: 1 / -1; font-size: 0.72rem; color: var(--text-muted); margin: -8px 0 8px; font-weight: 600;">Per-campaign discounts are set inside each Reach campaign below. This overall extra applies on top of campaign discounts.</p>
                 <div class="form-group">
                     <label>GST Rate (%)</label>
                     <input type="number" id="taxPercent" value="18" min="0" oninput="triggerUpdate()">
@@ -571,43 +579,51 @@
     }
 
     // --- NEW DISCOUNT SYNC FUNCTIONS ---
+    function getReachCampaignMonthlyGross(id) {
+        const city = document.getElementById(`spotlightCity_${id}`)?.value || '';
+        const zone = document.getElementById(`spotlightZone_${id}`)?.value || '';
+        const spec = document.getElementById(`spotlightSpeciality_${id}`)?.value || '';
+        const pos = document.getElementById(`spotlightPosition_${id}`)?.value || '';
+        const qty = parseInt(document.getElementById(`spotlightQuantity_${id}`)?.value) || 0;
+        const price = parseFloat(document.getElementById(`spotlightFoundPrice_${id}`)?.value) || 0;
+        if (!(city && zone && spec && pos && price > 0 && qty > 0)) return 0;
+        return price * qty;
+    }
+
+    function getReachCampaignDiscountPct(id) {
+        return Math.min(100, Math.max(0, parseFloat(document.getElementById(`spotlightDiscountPct_${id}`)?.value) || 0));
+    }
+
+    function syncReachCampaignDiscount(id, source) {
+        const monthly = getReachCampaignMonthlyGross(id);
+        const pctEl = document.getElementById(`spotlightDiscountPct_${id}`);
+        const amtEl = document.getElementById(`spotlightDiscountAmt_${id}`);
+        if (!pctEl || !amtEl) return;
+        if (source === 'amount') {
+            const amt = parseFloat(amtEl.value) || 0;
+            pctEl.value = monthly > 0 ? Math.min(100, (amt / monthly) * 100).toFixed(2) : 0;
+        } else {
+            const pct = getReachCampaignDiscountPct(id);
+            if (document.activeElement !== amtEl) {
+                amtEl.value = monthly > 0 ? ((monthly * pct) / 100).toFixed(2) : '0';
+            }
+        }
+        triggerUpdate();
+    }
+
     function getReachMonthlyTotal() {
         let reachMonthly = 0;
-        const hasReach = document.getElementById('toggle-reach').checked;
-        
-        if (hasReach) {
-            const blocks = document.querySelectorAll('.reach-block');
-            blocks.forEach((block) => {
-                const id = block.id.split('_')[1];
-                const citySel = document.getElementById(`spotlightCity_${id}`);
-                const zoneSel = document.getElementById(`spotlightZone_${id}`);
-                const specSel = document.getElementById(`spotlightSpeciality_${id}`);
-                const posSel = document.getElementById(`spotlightPosition_${id}`);
-                const qtySel = document.getElementById(`spotlightQuantity_${id}`);
-                const priceInp = document.getElementById(`spotlightFoundPrice_${id}`);
-
-                if (citySel && zoneSel && specSel && posSel && qtySel && priceInp) {
-                    const city = citySel.value;
-                    const zone = zoneSel.value;
-                    const spec = specSel.value;
-                    const pos = posSel.value;
-                    const qty = parseInt(qtySel.value) || 0;
-                    const price = parseFloat(priceInp.value) || 0;
-
-                    // Calculate strictly on per month value basis
-                    if (city && zone && spec && pos && price > 0 && qty > 0) {
-                        reachMonthly += (price * qty); 
-                    }
-                }
-            });
-        }
+        if (!document.getElementById('toggle-reach').checked) return 0;
+        document.querySelectorAll('.reach-block').forEach((block) => {
+            const id = block.id.split('_')[1];
+            reachMonthly += getReachCampaignMonthlyGross(id);
+        });
         return reachMonthly;
     }
 
     function updateDiscountPercentSync() {
         const reachMonthly = getReachMonthlyTotal();
         const amt = parseFloat(document.getElementById('discountAmount').value) || 0;
-        
         if (reachMonthly > 0) {
             let pct = (amt / reachMonthly) * 100;
             if (pct > 100) pct = 100;
@@ -615,7 +631,6 @@
         } else {
             document.getElementById('discountPercent').value = 0;
         }
-        
         triggerUpdate();
     }
 
@@ -852,15 +867,24 @@
     }
 
     function getUniqueValues(data, key) { 
-        return [...new Set(data.map(item => item[key]).filter(val => val !== undefined && val !== null && val !== ''))].sort(); 
+        return [...new Set(data.map(item => String(item[key] ?? '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })); 
     }
     
     function populateDropdown(element, options) {
         if (!element) return;
         const currentVal = element.value;
-        element.innerHTML = '<option value="">-- Select --</option>';
-        options.forEach(opt => element.innerHTML += `<option value="${opt}">${opt}</option>`);
-        if (currentVal && options.includes(currentVal)) element.value = currentVal;
+        element.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- Select --';
+        element.appendChild(placeholder);
+        options.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = String(opt);
+            o.textContent = String(opt);
+            element.appendChild(o);
+        });
+        if (currentVal && options.map(String).includes(String(currentVal))) element.value = String(currentVal);
     }
     
     function formatCurrency(num) { return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -880,14 +904,28 @@
         return header ? header.trim() : '';
     }
 
-    function applyParsedSheet(results, quiet) {
-        if (results.errors.length > 0 && results.data.length === 0) {
-            updateHeaderStatus("Sync failed — retry shortly", "error");
-            document.getElementById('fileNameDisplay').innerText = "Sync failed";
+    function normalizeSheetRows(rows) {
+        return (rows || []).map((r) => ({
+            City: String(r.City ?? r.city ?? '').trim(),
+            Zone: String(r.Zone ?? r.zone ?? '').trim(),
+            Speciality: String(r.Speciality ?? r.speciality ?? r.Specialty ?? '').trim(),
+            Position: String(r.Position ?? r.position ?? '').trim(),
+            Price_3M: r.Price_3M ?? r.price3M ?? '',
+            Price_6M: r.Price_6M ?? r.price6M ?? '',
+            Price_12M: r.Price_12M ?? r.price12M ?? '',
+            Pricing: r.Pricing ?? r.pricing ?? '',
+            TotalSlots: r.TotalSlots ?? r.totalSlots ?? r['Total Slots'] ?? '',
+            AvailableSlots: r.AvailableSlots ?? r.availableSlots ?? r['AvailableSlots'] ?? r['Available Slots'] ?? '',
+        })).filter((r) => r.City && r.Zone);
+    }
+
+    function applySheetRows(rows, quiet) {
+        sheetData = normalizeSheetRows(rows);
+        if (!sheetData.length) {
+            updateHeaderStatus("Sync returned 0 rows", "error");
+            document.getElementById('fileNameDisplay').innerText = "No inventory rows";
             return;
         }
-        sheetData = results.data;
-        try { localStorage.setItem('practoDatabaseProV15', JSON.stringify(sheetData)); } catch(e){}
         populateUI(sheetData, false);
         const n = sheetData.length;
         document.getElementById('uploadBoxLabel').innerText = "Google Sheet Auto-Sync";
@@ -895,19 +933,49 @@
         if (!quiet) updateHeaderStatus("Live Database Synced (" + n.toLocaleString('en-IN') + " rows)", "success");
     }
 
+    function applyParsedSheet(results, quiet) {
+        if (results.errors.length > 0 && results.data.length === 0) {
+            updateHeaderStatus("Sync failed — retry shortly", "error");
+            document.getElementById('fileNameDisplay').innerText = "Sync failed";
+            return;
+        }
+        applySheetRows(results.data, quiet);
+    }
+
     async function fetchSheetData(url, quiet, forceRefresh) {
         if (!quiet) updateHeaderStatus("Auto-Syncing...", "warning");
-        document.getElementById('fileNameDisplay').innerText = forceRefresh ? "Refreshing…" : "Syncing from Google Sheet…";
+        const statusEl = document.getElementById('fileNameDisplay');
+        if (statusEl) statusEl.innerText = forceRefresh ? "Refreshing…" : "Syncing from Google Sheet…";
 
         const token = getSalesAuthToken();
-        const apiUrl = '/api/commercial/inventory.csv' + (forceRefresh ? '?refresh=1' : '');
+        const headers = { Accept: 'application/json,text/csv,text/plain,*/*' };
+        if (token) headers.Authorization = 'Bearer ' + token;
 
+        // 1) Preferred: JSON inventory from backend (already synced from Google Sheet)
         try {
-            const headers = { Accept: 'text/csv,text/plain,*/*' };
-            if (token) headers.Authorization = 'Bearer ' + token;
-            const res = await fetch(apiUrl, { headers, cache: 'no-store' });
+            if (forceRefresh) {
+                await fetch('/api/sheet/sync', { method: 'POST', headers, cache: 'no-store' });
+            }
+            const res = await fetch('/api/commercial/inventory', { headers, cache: 'no-store' });
             if (res.ok) {
-                const csvData = await res.text();
+                const data = await res.json();
+                if (Array.isArray(data.rows) && data.rows.length) {
+                    applySheetRows(data.rows, quiet);
+                    return;
+                }
+            } else if (res.status === 401) {
+                updateHeaderStatus("Sign in to Sales Automation to sync sheet", "error");
+                if (statusEl) statusEl.innerText = "Auth required for sheet sync";
+            }
+        } catch (e) {
+            console.warn('JSON inventory sync failed', e);
+        }
+
+        // 2) CSV from backend cache
+        try {
+            const csvRes = await fetch('/api/commercial/inventory.csv' + (forceRefresh ? '?refresh=1' : ''), { headers, cache: 'no-store' });
+            if (csvRes.ok) {
+                const csvData = await csvRes.text();
                 Papa.parse(csvData, {
                     header: true, skipEmptyLines: 'greedy', relaxColumnCount: true,
                     transformHeader: function(header) { return transformHeader(header); },
@@ -917,11 +985,12 @@
                 return;
             }
         } catch (e) {
-            console.warn('API sheet sync failed, trying proxy', e);
+            console.warn('CSV inventory sync failed', e);
         }
 
-        // Fallback: published Google Sheet via CORS proxy
-        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url || https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv');
+        // 3) Fallback: published Google Sheet via CORS proxy
+        const sheetFallback = url || 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv';
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetFallback);
         Papa.parse(proxyUrl, {
             download: true, header: true, skipEmptyLines: 'greedy', relaxColumnCount: true,
             transformHeader: function(header) { return transformHeader(header); },
@@ -929,7 +998,7 @@
             complete: function(results) { applyParsedSheet(results, quiet); },
             error: function() {
                 updateHeaderStatus("Auto-sync unavailable — retry later", "error");
-                document.getElementById('fileNameDisplay').innerText = "Auto-sync failed";
+                if (statusEl) statusEl.innerText = "Auto-sync failed";
             }
         });
     }
@@ -984,11 +1053,21 @@
                     <div class="grid-2" style="margin-top: 12px;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label>Base Price per slot (₹/mo) <span style="color:var(--brand-teal); font-size:0.7rem; font-weight:normal;">[Editable]</span></label>
-                            <input type="number" id="spotlightFoundPrice_${id}" placeholder="Auto-fetched or manual" oninput="triggerUpdate()">
+                            <input type="number" id="spotlightFoundPrice_${id}" placeholder="Auto-fetched or manual" oninput="syncReachCampaignDiscount(${id}, 'percent')">
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
                             <label>Share of Slot</label>
-                            <select id="spotlightQuantity_${id}" onchange="triggerUpdate()"><option value="1">1 Slot</option></select>
+                            <select id="spotlightQuantity_${id}" onchange="syncReachCampaignDiscount(${id}, 'percent')"><option value="1">1 Slot</option></select>
+                        </div>
+                    </div>
+                    <div class="grid-2" style="margin-top: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Campaign Discount (%)</label>
+                            <input type="number" id="spotlightDiscountPct_${id}" value="0" min="0" max="100" step="0.01" oninput="syncReachCampaignDiscount(${id}, 'percent')">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Campaign Discount Amt / Month (₹)</label>
+                            <input type="number" id="spotlightDiscountAmt_${id}" value="0" min="0" step="0.01" oninput="syncReachCampaignDiscount(${id}, 'amount')">
                         </div>
                     </div>
                 </div>
@@ -1017,13 +1096,13 @@
         const spec = specSel.value;
 
         if (level === 'city') {
-            populateDropdown(zoneSel, getUniqueValues(sheetData.filter(r => r.City === city), 'Zone'));
+            populateDropdown(zoneSel, getUniqueValues(sheetData.filter(r => String(r.City) === String(city)), 'Zone'));
             populateDropdown(specSel, []); populateDropdown(posSel, []);
         } else if (level === 'zone') {
-            populateDropdown(specSel, getUniqueValues(sheetData.filter(r => r.City === city && r.Zone === zone), 'Speciality'));
+            populateDropdown(specSel, getUniqueValues(sheetData.filter(r => String(r.City) === String(city) && String(r.Zone) === String(zone)), 'Speciality'));
             populateDropdown(posSel, []);
         } else if (level === 'speciality') {
-            populateDropdown(posSel, getUniqueValues(sheetData.filter(r => r.City === city && r.Zone === zone && r.Speciality === spec), 'Position'));
+            populateDropdown(posSel, getUniqueValues(sheetData.filter(r => String(r.City) === String(city) && String(r.Zone) === String(zone) && String(r.Speciality) === String(spec)), 'Position'));
         }
         checkSlotStatus(id);
     }
@@ -1050,7 +1129,7 @@
             return;
         }
 
-        const match = sheetData.find(row => row.City === city && row.Zone === zone && row.Speciality === spec && row.Position === pos);
+        const match = sheetData.find(row => String(row.City) === String(city) && String(row.Zone) === String(zone) && String(row.Speciality) === String(spec) && String(row.Position) === String(pos));
 
         if(match) {
             let basePrice = 0;
@@ -1209,6 +1288,7 @@
             shareItemsText += sharePrimeText;
         }
 
+        let campaignDiscountTotal = 0;
         if (hasReach) {
             const blocks = document.querySelectorAll('.reach-block');
             blocks.forEach((block, index) => {
@@ -1224,19 +1304,31 @@
                 const qty = parseInt(document.getElementById(`spotlightQuantity_${id}`).value) || 0;
                 const totalSlots = parseInt(document.getElementById(`spotlightQuantity_${id}`).dataset.total) || 99;
                 const price = parseFloat(document.getElementById(`spotlightFoundPrice_${id}`).value) || 0;
+                const campDiscPct = getReachCampaignDiscountPct(id);
+                const campDiscMonthly = (price * qty) * (campDiscPct / 100);
+                const campDiscAmt = campDiscMonthly * dur;
+
+                // keep campaign discount amount field in sync when not typing amount
+                const amtEl = document.getElementById(`spotlightDiscountAmt_${id}`);
+                if (amtEl && document.activeElement !== amtEl) {
+                    amtEl.value = (price * qty) > 0 ? campDiscMonthly.toFixed(2) : '0';
+                }
 
                 if (city && zone && spec && pos && price > 0 && qty > 0) {
-                    const blockTotal = price * dur * qty; 
-                    reachTotal += blockTotal; // Tracking Reach Total separately
-                    subtotal += blockTotal;
+                    const blockGross = price * dur * qty;
+                    const blockNet = Math.max(0, blockGross - campDiscAmt);
+                    reachTotal += blockGross;
+                    campaignDiscountTotal += campDiscAmt;
+                    subtotal += blockGross;
                     
                     const sovText = totalSlots === 99 ? `${qty} Slot(s)` : `${qty} of ${totalSlots} Slots (${Math.round((qty/totalSlots)*100)}% Share of Slot)`;
+                    const discNote = campDiscPct > 0 ? `<br><span style="color:#DC2626; font-weight:700;">Campaign discount: ${campDiscPct}% (− ₹${formatCurrency(campDiscAmt)})</span>` : '';
 
                     if (isProforma) {
                         tbody.innerHTML += `<tr>
-                            <td><strong>${zone || city} | ${spec}</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">${pos} | ${dur} Months | ${sovText}</span></td>
+                            <td><strong>${zone || city} | ${spec}</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">${pos} | ${dur} Months | ${sovText}${campDiscPct > 0 ? ` | Disc ${campDiscPct}%` : ''}</span></td>
                             <td>${sacCodeVal}</td>
-                            <td style="text-align: right; font-weight: 700;">${formatCurrency(blockTotal)}</td>
+                            <td style="text-align: right; font-weight: 700;">${formatCurrency(blockNet)}</td>
                         </tr>`;
                     } else {
                         tbody.innerHTML += `<tr>
@@ -1245,30 +1337,38 @@
                                     ${city} | ${zone} | ${spec} | ${pos} <br>
                                     Duration: ${dur} Months @ ₹${formatCurrency(price)}/mo per slot <br>
                                     <span style="color: var(--brand-teal); font-weight: 700;">Share of Slot: ${sovText}</span>
+                                    ${discNote}
                                 </span>
                             </td>
-                            <td style="text-align: right; font-weight: 700; vertical-align: bottom;">${formatCurrency(blockTotal)}</td>
+                            <td style="text-align: right; font-weight: 700; vertical-align: bottom;">${formatCurrency(blockGross)}</td>
                         </tr>`;
                     }
-                    shareItemsText += `• Reach Campaign: ${city} | ${zone} | ${spec} (${dur}M | ${qty} Slot(s))\n`;
+                    shareItemsText += `• Reach Campaign: ${city} | ${zone} | ${spec} (${dur}M | ${qty} Slot(s)${campDiscPct > 0 ? ` | ${campDiscPct}% off` : ''})\n`;
                 }
             });
         }
 
         if (hasVideo) {
+            const videoCount = Math.max(1, parseInt(document.getElementById('videoShootCount')?.value) || 1);
+            const videoLabel = videoCount === 1
+                ? 'Professional Clinic Profile Video Shoot'
+                : `${videoCount} Professional Clinic Profile Video Shoots`;
+            const videoSub = videoCount === 1
+                ? 'Exclusive On-Site Production'
+                : `${videoCount} complimentary on-site productions`;
             if (isProforma) {
                 tbody.innerHTML += `<tr>
-                    <td><strong>One Ad Video Shoot</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">Complimentary On-Site Production</span></td>
+                    <td><strong>${videoCount} Ad Video Shoot${videoCount > 1 ? 's' : ''}</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">${videoSub}</span></td>
                     <td>${sacCodeVal}</td>
                     <td style="text-align: right; font-weight: 800; color: var(--brand-teal);">Complimentary</td>
                 </tr>`;
             } else {
                 tbody.innerHTML += `<tr>
-                    <td><strong>Professional Clinic Profile Video Shoot</strong><br><span style="font-size: 0.85em; color: var(--text-muted);">Exclusive On-Site Production</span></td>
-                    <td style="text-align: right; font-weight: 800; color: var(--brand-teal);">Complimentary</td>
+                    <td><strong>${videoLabel}</strong><br><span style="font-size: 0.85em; color: var(--text-muted);">${videoSub}</span></td>
+                    <td style="text-align: right; font-weight: 800; color: var(--brand-teal);">Complimentary × ${videoCount}</td>
                 </tr>`;
             }
-            shareItemsText += `• Complimentary Profile Video Shoot\n`;
+            shareItemsText += `• Complimentary Profile Video Shoot × ${videoCount}\n`;
         }
 
         const discPct = parseFloat(document.getElementById('discountPercent').value) || 0;
@@ -1276,18 +1376,22 @@
         const tdsPct = parseFloat(document.getElementById('tdsPercent').value) || 0;
         const includeTds = document.getElementById('includeTdsCheckbox').checked;
         
-        // DISCOUNT ONLY APPLIES TO REACH TOTAL NOW
-        const discAmt = reachTotal * (discPct / 100);
+        // Overall extra discount applies to remaining Reach gross after campaign discounts
+        const remainingReach = Math.max(0, reachTotal - campaignDiscountTotal);
+        const overallExtra = remainingReach * (discPct / 100);
+        const discAmt = campaignDiscountTotal + overallExtra;
 
-        // UPDATE DISCOUNT AMOUNT FIELD AUTOMATICALLY IF USER ISN'T TYPING IN IT
+        // UPDATE overall discount amount field AUTOMATICALLY IF USER ISN'T TYPING IN IT
         if (document.activeElement.id !== 'discountAmount') {
             const reachMonthly = getReachMonthlyTotal();
+            // approximate overall monthly extra only
             const perMonthDiscount = reachMonthly * (discPct / 100);
             document.getElementById('discountAmount').value = perMonthDiscount > 0 ? perMonthDiscount.toFixed(2) : "0";
         }
 
         // Apply discount to arrive at base amount
         const baseAmt = subtotal - discAmt;
+
         const taxAmt = baseAmt * (taxPct / 100);
         const invTotal = baseAmt + taxAmt;
         const tdsAmt = baseAmt * (tdsPct / 100);
@@ -1311,7 +1415,7 @@
             // Updated discount line item text to show it only applied to Reach
             tbody.innerHTML += `
                 <tr>
-                    <td style="text-align: right; font-size: 0.85rem;">Applied Discount (${discPct}% on Reach Products)</td>
+                    <td style="text-align: right; font-size: 0.85rem;">Total Reach Discounts (campaign + overall ${discPct}%)</td>
                     <td style="text-align: right; color: #DC2626; font-weight: 700;">- ${formatCurrency(discAmt)}</td>
                 </tr>
                 <tr>
