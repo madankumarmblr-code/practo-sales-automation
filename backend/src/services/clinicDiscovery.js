@@ -329,7 +329,7 @@ export function discoverClinics({
       withPractoProfile: withPracto,
       withoutPractoProfile: final.length - withPracto,
       platformsCovered: PLATFORMS.length,
-      source: 'locations.csv',
+      source: 'google_sheet',
     },
     count: final.length,
     results: final.map((r) => ({

@@ -96,6 +96,16 @@ export const api = {
   },
   importLeads: (leads) =>
     request('/api/lead-generator/import', { method: 'POST', body: JSON.stringify({ leads }) }),
+  getSheetStatus: () => request('/api/sheet/status'),
+  syncSheet: () => request('/api/sheet/sync', { method: 'POST' }),
+  getCommercialMeta: () => request('/api/commercial/meta'),
+  getCommercialInventory: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString();
+    return request(`/api/commercial/inventory${qs ? `?${qs}` : ''}`);
+  },
+  refreshCommercial: () => request('/api/commercial/refresh', { method: 'POST' }),
   getCampaigns: () => request('/api/autopilot/campaigns'),
   getAutopilotStats: () => request('/api/autopilot/stats'),
   createCampaign: (body) =>

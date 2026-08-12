@@ -197,7 +197,7 @@ export default function LeadGenerator() {
         <div>
           <h1>Lead Generator</h1>
           <p>
-            Driven by the locations sheet — pick <strong>City → Zone/Locality → Keyword</strong> to load
+            Driven by the live Google Sheet — pick <strong>City → Zone/Locality → Speciality</strong> to load
             matching clinic leads with owner, marketing head, Practo, and platform details.
           </p>
         </div>
@@ -222,7 +222,7 @@ export default function LeadGenerator() {
       </div>
 
       <div className="panel" style={{ marginBottom: '1rem' }}>
-        <h2>Locations sheet filters</h2>
+        <h2>Google Sheet filters</h2>
         <div className="form-grid three">
           <label className="field">
             City
@@ -268,11 +268,15 @@ export default function LeadGenerator() {
           <div className="muted" style={{ marginBottom: 8, fontSize: '0.85rem' }}>
             {busy && scanStep
               ? scanStep
-              : `Sheet source: locations.csv · ${meta.comboCount || meta.catalogSize || '—'} city/zone/keyword mappings · Platforms: ${(
+              : `Sheet source: Google Sheet (auto-sync) · ${meta.comboCount || meta.catalogSize || '—'} city/zone/speciality mappings · Platforms: ${(
                   scannedSources.length ? scannedSources : meta.platforms || []
                 )
                   .map((p) => p.name || p)
-                  .join(' · ')}`}
+                  .join(' · ')}${
+                  meta.sheetSync?.lastSync
+                    ? ` · Last sync ${new Date(meta.sheetSync.lastSync).toLocaleString()}`
+                    : ''
+                }`}
           </div>
           {summary ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -343,7 +347,7 @@ export default function LeadGenerator() {
           <div className="empty">{scanStep || 'Loading sheet-mapped leads…'}</div>
         ) : !filtered.length ? (
           <div className="empty">
-            No leads for this city / zone / keyword combination in the locations sheet. Try another
+            No leads for this city / zone / speciality combination in the Google Sheet. Try another
             locality or keyword.
           </div>
         ) : (

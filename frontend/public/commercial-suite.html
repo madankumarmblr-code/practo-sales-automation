@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practo Enterprise Commercial Suite | Pro</title>
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1E2238; --primary-accent: #28328C; --primary-light: #4F46E5;
+            --brand-teal: #0D9488; --brand-teal-light: #14B8A6;
+            --bg-main: #F1F5F9; --bg-panel: #FFFFFF; --bg-sidebar: #F8FAFC;
+            --text-main: #0F172A; --text-muted: #64748B;
+            --border-light: #E2E8F0; --border-focus: #818CF8;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-main); color: var(--text-main); -webkit-font-smoothing: antialiased; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        /* Top Navigation */
+        .navbar { background: var(--bg-panel); border-bottom: 1px solid var(--border-light); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; z-index: 100; height: 64px; flex-shrink: 0; }
+        .logo-group { display: flex; align-items: center; gap: 16px; }
+        .divider { height: 20px; width: 1px; background-color: var(--border-light); }
+        .app-title { color: var(--text-muted); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .nav-actions { display: flex; align-items: center; gap: 16px; }
+        .status-pill { padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; }
+        .pill-success { background: #ECFDF5; color: #065F46; border-color: #A7F3D0; }
+        .pill-warning { background: #FFFBEB; color: #92400E; border-color: #FDE68A; }
+        .pill-error { background: #FEF2F2; color: #991B1B; border-color: #FECACA; }
+        
+        .btn-settings { background: #F8FAFC; border: 1px solid var(--border-light); color: var(--text-main); padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .btn-settings:hover { background: #EEF2FF; border-color: var(--border-focus); color: var(--primary-light); }
+        
+        .btn-logout { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-logout:hover { background: #FEE2E2; }
+
+        /* Login Overlay */
+        .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .login-card { background: var(--bg-panel); width: 100%; max-width: 400px; padding: 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); text-align: center; }
+
+        /* SaaS Split-Pane Layout */
+        .dashboard { display: flex; flex: 1; overflow: hidden; }
+        .config-panel { width: 500px; background: var(--bg-sidebar); border-right: 1px solid var(--border-light); overflow-y: auto; padding: 24px; flex-shrink: 0; }
+        .preview-panel { flex: 1; background: var(--bg-main); overflow-y: auto; padding: 40px; display: flex; flex-direction: column; align-items: center; }
+
+        /* Config Elements */
+        .section-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 12px; margin-top: 24px; }
+        .section-title:first-child { margin-top: 0; }
+        .control-card { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+        
+        /* Form Inputs */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+        input[type="text"], input[type="number"], input[type="password"], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.85rem; font-weight: 600; color: var(--text-main); background: #fff; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
+        textarea { resize: vertical; min-height: 80px; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        input[readonly] { background-color: #F8FAFC; color: var(--text-muted); cursor: not-allowed; }
+
+        /* Upload Box */
+        .upload-box { border: 2px dashed #CBD5E1; padding: 20px; border-radius: var(--radius-sm); background: #F8FAFC; text-align: center; cursor: pointer; transition: 0.2s; }
+        .upload-box:hover { border-color: var(--primary-light); background: #EEF2FF; }
+
+        /* Toggles */
+        .toggle-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .toggle-card { border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; background: #fff; transition: 0.2s; }
+        .toggle-card:hover { border-color: var(--border-focus); }
+        .toggle-card.active { border-color: var(--primary-light); background: #EEF2FF; box-shadow: 0 0 0 1px var(--primary-light); }
+        .toggle-card input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary-light); cursor: pointer; }
+        .toggle-card h4 { margin: 0 0 2px 0; font-size: 0.9rem; color: var(--text-main); }
+        .toggle-card p { margin: 0; font-size: 0.7rem; color: var(--text-muted); }
+
+        .config-section { display: none; padding-top: 10px; border-top: 1px dashed var(--border-light); margin-top: 16px; }
+        .config-section.active { display: block; }
+
+        /* Reach Blocks */
+        .reach-block { background: #F8FAFC; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px; position: relative; }
+        .btn-add-reach { background: #EEF2FF; color: var(--primary-light); border: 1px dashed var(--primary-light); padding: 10px; width: 100%; font-weight: 700; font-size: 0.8rem; border-radius: var(--radius-sm); cursor: pointer; transition: 0.2s; }
+        .btn-add-reach:hover { background: #E0E7FF; }
+        .btn-remove { position: absolute; top: 12px; right: 12px; background: transparent; color: #E11D48; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .btn-remove:hover { text-decoration: underline; }
+        
+        .slot-indicator { font-size: 0.75rem; font-weight: 700; margin-top: 8px; color: var(--brand-teal); display: flex; align-items: center; gap: 4px; }
+        .slot-box-display { padding: 10px 12px; background: #fff; border-radius: var(--radius-sm); border: 1px solid var(--border-light); font-weight: 700; color: var(--text-main); font-size: 0.85rem; display: flex; align-items: center; justify-content: center; text-align: center; height: 42px;}
+
+        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; cursor: pointer; }
+        .checkbox-row input { width: 16px; height: 16px; accent-color: var(--primary-light); cursor: pointer; }
+        .checkbox-row span { font-size: 0.8rem; font-weight: 600; color: var(--text-main); }
+
+        /* Action Bar */
+        .preview-actions { display: flex; gap: 12px; margin-bottom: 24px; width: 100%; max-width: 800px; justify-content: flex-end; }
+        .btn { border: none; padding: 10px 20px; font-size: 0.85rem; font-weight: 700; border-radius: var(--radius-sm); cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: var(--shadow-sm); }
+        .btn-pdf { background-color: var(--primary-accent); color: white; }
+        .btn-pdf:hover { background-color: #1a2263; }
+        .btn-whatsapp { background-color: #10B981; color: white; }
+        .btn-whatsapp:hover { background-color: #059669; }
+        .btn-email { background-color: #6366F1; color: white; }
+        .btn-email:hover { background-color: #4F46E5; }
+        .btn-primary { background-color: var(--primary-light); color: white; }
+        .btn-primary:hover { background-color: #4338CA; }
+
+        /* AI Copilot Card */
+        .ai-card { background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%); color: white; padding: 20px; border-radius: var(--radius-md); margin-bottom: 24px; position: relative; overflow: hidden; box-shadow: var(--shadow-md); }
+        .ai-card::after { content: '✨'; position: absolute; top: -10px; right: 10px; font-size: 60px; opacity: 0.1; }
+        .ai-header { font-size: 0.75rem; font-weight: 800; color: #A5B4FC; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .ai-body { font-size: 0.85rem; line-height: 1.5; font-weight: 500; }
+        .ai-score { display: inline-block; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 4px; font-weight: 800; margin-top: 10px; font-size: 0.8rem; }
+
+        /* Settings Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); z-index: 999; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-card { background: var(--bg-panel); width: 100%; max-width: 700px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: modalPop 0.3s ease; }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; }
+        .modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+        .modal-header button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; }
+        .modal-header button:hover { background: #E2E8F0; color: var(--text-main); }
+        .modal-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-light); background: #F8FAFC; display: flex; justify-content: flex-end; }
+        
+        .danger-zone { background: #FEF2F2; padding: 16px; border-radius: var(--radius-sm); border: 1px solid #FECACA; margin-top: 24px; }
+        .danger-zone h4 { color: #991B1B; margin: 0 0 8px 0; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; }
+        .info-box { background: #F0FDF4; border: 1px solid #BBF7D0; padding: 12px; border-radius: var(--radius-sm); font-size: 0.75rem; color: #166534; margin-bottom: 16px; }
+
+        /* Official Invoice PDF Wrapper & Pagination Rules */
+        .invoice-wrapper { width: 100%; max-width: 800px; background: #fff; padding: 40px 60px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); border: 1px solid var(--border-light); transform-origin: top center; margin-bottom: 50px; position: relative; }
+        .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 2px solid var(--primary-accent); break-inside: avoid; page-break-inside: avoid; }
+        .invoice-title { font-size: 1.8rem; font-weight: 800; color: var(--primary-accent); letter-spacing: -0.5px; margin: 0; }
+        
+        /* Proforma Metadata Box */
+        .proforma-meta-box { display: none; background: #F8FAFC; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px; font-size: 0.8rem; break-inside: avoid; page-break-inside: avoid; }
+        .proforma-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .meta-col h5 { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--primary-accent); margin-bottom: 8px; border-bottom: 1px solid var(--border-light); padding-bottom: 4px; }
+        .meta-row { display: flex; justify-content: space-between; padding: 3px 0; }
+        .meta-row span:first-child { color: var(--text-muted); font-weight: 600; }
+        .meta-row span:last-child { color: var(--text-main); font-weight: 700; text-align: right; }
+        .meta-address { margin-top: 6px; font-size: 0.75rem; color: var(--text-muted); border-top: 1px dashed var(--border-light); padding-top: 4px; line-height: 1.4; }
+
+        /* Bank Details Box */
+        .bank-details-box { display: none; background: #F8FAFC; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 16px; margin-top: 24px; font-size: 0.8rem; break-inside: avoid; page-break-inside: avoid; }
+        .bank-details-box h4 { font-size: 0.85rem; font-weight: 800; color: var(--primary-accent); margin-bottom: 8px; text-transform: uppercase; }
+        .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .product-overview { background-color: #F8FAFC; padding: 24px; border-radius: var(--radius-sm); margin-bottom: 32px; border: 1px solid var(--border-light); break-inside: avoid; page-break-inside: avoid; }
+        .product-overview h4 { margin: 0 0 12px 0; color: var(--primary-accent); font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .scope-item { margin-bottom: 12px; font-size: 0.85rem; color: #334155; line-height: 1.6; display: none; }
+        .scope-item strong { color: var(--text-main); font-weight: 700; }
+
+        .table-summary { width: 100%; border-collapse: collapse; margin-top: 10px; break-inside: auto; page-break-inside: auto; }
+        .table-summary tr { break-inside: avoid; page-break-inside: avoid; }
+        .table-summary th, .table-summary td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border-light); }
+        .table-summary th { background-color: var(--primary-accent) !important; font-weight: 700; color: #fff; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        .table-summary td { font-size: 0.85rem; color: var(--text-main); }
+        
+        .row-total td { background-color: #F8FAFC !important; font-weight: 800 !important; font-size: 0.95rem !important; }
+        .row-net td { background-color: #EEF2FF !important; color: var(--primary-accent) !important; font-weight: 800 !important; font-size: 1.15rem !important; }
+        
+        .tnc-section { margin-top: 24px; padding: 16px; background: #F8FAFC; border: 1px solid var(--border-light); border-radius: var(--radius-sm); break-inside: avoid; page-break-inside: avoid; }
+        .tnc-section h4 { margin: 0 0 8px 0; color: var(--text-main); font-size: 0.8rem; font-weight: 800; text-transform: uppercase; }
+        .tnc-section ul { margin: 0; padding-left: 18px; color: var(--text-muted); font-size: 0.75rem; line-height: 1.5; }
+        
+        .footer-note { margin-top: 20px; color: var(--text-muted); font-size: 0.75rem; border-top: 1px solid var(--border-light); padding-top: 16px; display: flex; justify-content: space-between; align-items: flex-start; break-inside: avoid; page-break-inside: avoid; }
+        .sender-details { font-weight: 600; color: var(--primary-accent); }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN GATE MODAL -->
+<div id="loginModal" class="login-overlay">
+    <div class="login-card">
+        <svg width="120" height="35" viewBox="0 0 120 35" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 24px;">
+            <text x="0" y="26" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="800" font-size="32" fill="#28328C" letter-spacing="-1.5">practo</text>
+            <circle cx="106" cy="22" r="5" fill="#14B8A6"/>
+        </svg>
+        <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; color: var(--text-main);">Enterprise Commercial Suite</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 24px;">Default credentials: <strong>practo</strong> / <strong>practo</strong></p>
+        
+        <div class="form-group" style="text-align: left;">
+            <label>User ID</label>
+            <input type="text" id="loginUser" placeholder="User ID" value="practo">
+        </div>
+        <div class="form-group" style="text-align: left;">
+            <label>Password</label>
+            <input type="password" id="loginPass" placeholder="Password" value="practo">
+        </div>
+        <button class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 12px;" onclick="handleLogin()">Sign In</button>
+        <div id="loginError" style="color: #E11D48; font-size: 0.75rem; font-weight: 700; margin-top: 12px; display: none;">Invalid User ID or Password</div>
+    </div>
+</div>
+
+<!-- TOP NAV -->
+<div class="navbar">
+    <div class="logo-group">
+        <svg width="110" height="30" viewBox="0 0 120 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="0" y="26" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="800" font-size="32" fill="#28328C" letter-spacing="-1.5">practo</text>
+            <circle cx="106" cy="22" r="5" fill="#14B8A6"/>
+        </svg>
+        <div class="divider"></div>
+        <span class="app-title">Commercial Proposal Engine</span>
+    </div>
+    <div class="nav-actions">
+        <div id="headerStatus"><span class="status-pill pill-warning">Awaiting Database Sync</span></div>
+        <button class="btn-settings" onclick="openSettings()">⚙️ Settings</button>
+        <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+    </div>
+</div>
+
+<div class="dashboard">
+    <!-- LEFT PANEL -->
+    <div class="config-panel">
+        
+        <!-- AI DEAL COPILOT & PITCH GENERATOR -->
+        <div class="ai-card">
+            <div class="ai-header">🤖 AI Deal Copilot & Pitch Generator</div>
+            <div class="ai-body" id="aiCopilotText">Configure proposal to generate AI insights and custom pitches.</div>
+            <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="ai-score" id="aiCopilotScore" style="display: none;">Deal Score: 0/100</div>
+                <button class="btn" style="background: rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; font-size: 0.75rem;" onclick="copyAiPitch()">📋 Copy AI Pitch</button>
+            </div>
+        </div>
+
+        <div class="section-title">Data Integration</div>
+        <div class="control-card">
+            <div class="upload-box" style="cursor: default;" id="syncStatusBox">
+                <div style="font-weight: 700; color: var(--primary-light); margin-bottom: 4px;" id="uploadBoxLabel">Google Sheet Auto-Sync</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);" id="fileNameDisplay">Connecting to live inventory…</div>
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button type="button" class="btn" style="background: #EEF2FF; color: var(--primary-light); border: 1px solid var(--border-focus); font-size: 0.75rem; padding: 10px; flex: 1;" onclick="manualRefreshSheet()">
+                    ↻ Refresh Now
+                </button>
+                <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv" target="_blank" rel="noopener" class="btn" style="background: #F8FAFC; color: var(--primary-light); border: 1px solid var(--border-light); font-size: 0.75rem; padding: 10px; flex: 1; text-decoration: none; text-align: center;">
+                    Open Sheet
+                </a>
+            </div>
+        </div>
+
+        <div class="section-title">Product Selection</div>
+        <div class="toggle-group">
+            <label class="toggle-card" id="card-prime">
+                <input type="checkbox" id="toggle-prime" onchange="toggleSection('prime')">
+                <div><h4>Practo Prime</h4><p>Premium Appointment Technology</p></div>
+            </label>
+            <div id="section-prime" class="config-section">
+                <div class="form-group">
+                    <label>Prime Product Variant</label>
+                    <select id="primeVariant" onchange="updatePrimeFields()">
+                        <option value="supreme">Prime Supreme</option>
+                        <option value="ai">Prime AI</option>
+                    </select>
+                </div>
+
+                <!-- DYNAMIC PRIME SUPREME FIELDS -->
+                <div id="primeSupremeFields" class="grid-2">
+                    <div class="form-group">
+                        <label>Call Charges (₹ / unique conn.)</label>
+                        <input type="number" id="primeCallCharge" value="0" min="0" placeholder="e.g. 250" oninput="triggerUpdate()">
+                    </div>
+                    <div class="form-group">
+                        <label>Book Charges (₹ / unique conn.)</label>
+                        <input type="number" id="primeBookCharge" value="0" min="0" placeholder="e.g. 300" oninput="triggerUpdate()">
+                    </div>
+                </div>
+
+                <!-- DYNAMIC PRIME AI FIELDS -->
+                <div id="primeAiFields" class="form-group" style="display: none;">
+                    <label>PFC Charges (₹ / unique connection)</label>
+                    <input type="number" id="primePfcCharge" value="0" min="0" placeholder="e.g. 350" oninput="triggerUpdate()">
+                </div>
+
+                <div class="form-group">
+                    <label>Prime Subscription Wallet Amount (₹)</label>
+                    <input type="number" id="primeAmount" value="0" min="0" placeholder="Enter Wallet Amount" oninput="triggerUpdate()">
+                </div>
+            </div>
+
+            <label class="toggle-card" id="card-reach">
+                <input type="checkbox" id="toggle-reach" onchange="toggleSection('reach')">
+                <div><h4>Practo Reach</h4><p>Targeted Visibility Campaigns</p></div>
+            </label>
+            <div id="section-reach" class="config-section">
+                <div id="reachBlocksContainer"></div>
+                <button type="button" class="btn-add-reach" onclick="addReachBlock()">+ Add Another Reach Campaign</button>
+            </div>
+
+            <label class="toggle-card" id="card-video">
+                <input type="checkbox" id="toggle-video" onchange="toggleSection('video')">
+                <div><h4>Video Shoot</h4><p>Complimentary On-Site Profile</p></div>
+            </label>
+        </div>
+
+        <div class="section-title">Commercial & Document Details</div>
+        <div class="control-card">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label>Document Type</label>
+                <select id="documentType" onchange="toggleDocumentType()">
+                    <option value="PROPOSAL">Commercial Proposal</option>
+                    <option value="PROFORMA INVOICE">Proforma Invoice</option>
+                </select>
+            </div>
+
+            <!-- PROFORMA SPECIFIC CONFIG FIELDS -->
+            <div id="proformaConfigSection" style="display: none; background: #F8FAFC; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); margin-bottom: 16px;">
+                <div class="form-group"><label>Proforma Invoice No.</label><input type="text" id="profInvNo" value="July/2026/PI/23" oninput="triggerUpdate()"></div>
+                <div class="form-group"><label>Purchaser / Client Company Name</label><input type="text" id="profClientName" value="CUTISINTERNATIONAL COSMETIC CLINICS PRIVATE LIMITED" oninput="triggerUpdate()"></div>
+                <div class="grid-2">
+                    <div class="form-group"><label>Purchaser PAN</label><input type="text" id="profClientPan" value="AACCN8042Q" oninput="triggerUpdate()"></div>
+                    <div class="form-group"><label>Purchaser GSTIN</label><input type="text" id="profClientGst" value="29AACCN8042Q1ZS" oninput="triggerUpdate()"></div>
+                </div>
+                <div class="form-group"><label>Purchaser Address</label><textarea id="profClientAddr" style="min-height: 50px;" oninput="triggerUpdate()">#123, 4th Main Road, Indiranagar, Bengaluru, Karnataka - 560038</textarea></div>
+                <div class="form-group"><label>Service Category</label><input type="text" id="profServiceCat" value="Information Technology Software" oninput="triggerUpdate()"></div>
+                <div class="form-group"><label>SAC Code</label><input type="text" id="profSacCode" value="998313" oninput="triggerUpdate()"></div>
+            </div>
+
+            <!-- UPDATED DISCOUNT & TAX GRID -->
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Discount (%)</label>
+                    <input type="number" id="discountPercent" value="0" min="0" max="100" oninput="triggerUpdate()">
+                </div>
+                <div class="form-group">
+                    <label>Discount Amt / Month (₹)</label>
+                    <input type="number" id="discountAmount" value="0" min="0" oninput="updateDiscountPercentSync()">
+                </div>
+                <div class="form-group">
+                    <label>GST Rate (%)</label>
+                    <input type="number" id="taxPercent" value="18" min="0" oninput="triggerUpdate()">
+                </div>
+                <div class="form-group">
+                    <label>TDS Rate (%)</label>
+                    <input type="number" id="tdsPercent" value="2" min="0" oninput="triggerUpdate()">
+                </div>
+            </div>
+            
+            <label class="checkbox-row">
+                <input type="checkbox" id="includeTdsCheckbox" checked onchange="triggerUpdate()">
+                <span>Show TDS deduction on PDF</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="preview-panel">
+        <div class="preview-actions">
+            <button class="btn btn-whatsapp" onclick="shareWhatsApp()">💬 WhatsApp</button>
+            <button class="btn btn-email" onclick="shareEmail()">📧 Email Client</button>
+            <button class="btn btn-pdf" onclick="downloadPDF()">📄 Export PDF</button>
+        </div>
+
+        <div class="invoice-wrapper" id="invoiceContent">
+            <div class="invoice-header">
+                <div>
+                    <svg width="150" height="40" viewBox="0 0 120 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <text x="0" y="26" font-family="'Plus Jakarta Sans', Arial, sans-serif" font-weight="800" font-size="32" fill="#28328C" letter-spacing="-1.5">practo</text>
+                        <circle cx="106" cy="22" r="5" fill="#14B8A6"/>
+                    </svg>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700; margin-top: 8px;">Practo Technologies Private Limited</div>
+                </div>
+                <div style="text-align: right;">
+                    <h2 class="invoice-title" id="proposalTitleDisplay">PROPOSAL</h2>
+                    <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 0.85rem; font-weight: 600;" id="invoiceDate"></p>
+                </div>
+            </div>
+
+            <!-- PROFORMA METADATA DISPLAY BLOCK (SELLER & PURCHASER INFO WITH SEPARATE ADDRESSES) -->
+            <div class="proforma-meta-box" id="proformaMetaDisplay">
+                <div class="proforma-meta-grid">
+                    <div class="meta-col">
+                        <h5>Seller Information</h5>
+                        <div class="meta-row"><span>Company:</span> <span id="dispSellerName">Practo Technologies Pvt. Ltd.</span></div>
+                        <div class="meta-row"><span>TAN:</span> <span id="dispSellerTan">BLRN05947E</span></div>
+                        <div class="meta-row"><span>CIN:</span> <span id="dispSellerCin">U72900KA2008PTC046374</span></div>
+                        <div class="meta-row"><span>PAN:</span> <span id="dispSellerPan">AACCN8042Q</span></div>
+                        <div class="meta-row"><span>GSTIN:</span> <span id="dispSellerGst">29AAICC3651Q1Z0</span></div>
+                        <div class="meta-address"><strong>Address:</strong> <span id="dispSellerAddr">First Floor, No.275 13th Cross Road, 19th Main Road, HSR Layout 4th Sector, Bengaluru Urban, Karnataka - 560102</span></div>
+                    </div>
+                    <div class="meta-col">
+                        <h5>Purchaser Information</h5>
+                        <div class="meta-row"><span>Invoice To:</span> <span id="dispClientName">CUTISINTERNATIONAL...</span></div>
+                        <div class="meta-row"><span>PAN:</span> <span id="dispClientPan">AACCN8042Q</span></div>
+                        <div class="meta-row"><span>GSTIN:</span> <span id="dispClientGst">29AACCN8042Q1ZS</span></div>
+                        <div class="meta-row"><span>Service Cat:</span> <span id="dispServiceCat">Information Technology Software</span></div>
+                        <div class="meta-row"><span>Invoice No:</span> <span id="dispInvNo">July/2026/PI/23</span></div>
+                        <div class="meta-address"><strong>Address:</strong> <span id="dispClientAddr">#123, 4th Main Road, Indiranagar, Bengaluru, Karnataka - 560038</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-overview" id="dynamicScopeBox" style="display: none;">
+                <h4>Included Scope of Services</h4>
+                <div id="scope-prime" class="scope-item">
+                    <strong>Practo Prime:</strong> <span id="scopeTextPrime"></span>
+                </div>
+                <div id="scope-reach" class="scope-item">
+                    <strong>Practo Reach Spotlight:</strong> <span id="scopeTextReach"></span>
+                </div>
+                <div id="scope-video" class="scope-item">
+                    <strong>Professional Clinic Profile Shoot:</strong> <span id="scopeTextVideo"></span>
+                </div>
+            </div>
+
+            <table class="table-summary" id="invoiceTable" style="display: none;">
+                <thead>
+                    <tr id="tableHeaderRow">
+                        <th style="width: 60%;">Item Description</th>
+                        <th id="sacHeaderCell" style="display: none; width: 15%;">SAC Code</th>
+                        <th style="text-align: right; width: 25%;">Taxable Value (INR)</th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceTableBody">
+                    <!-- Javascript live injection -->
+                </tbody>
+            </table>
+            
+            <!-- BANK DETAILS DISPLAY BOX FOR PROFORMA -->
+            <div class="bank-details-box" id="bankDetailsDisplayBox">
+                <h4>Practo Bank Details</h4>
+                <div class="bank-grid">
+                    <div class="meta-row"><span>Beneficiary Name:</span> <span id="dispBene">Practo Technologies Pvt. Ltd.</span></div>
+                    <div class="meta-row"><span>Bank:</span> <span id="dispBank">HDFC, JP Nagar, Bangalore</span></div>
+                    <div class="meta-row"><span>Acc No:</span> <span id="dispAccNo">01332320001144</span></div>
+                    <div class="meta-row"><span>IFSC:</span> <span id="dispIfsc">HDFC0000133</span></div>
+                    <div class="meta-row"><span>Acc Type:</span> <span id="dispAccType">Current</span></div>
+                    <div class="meta-row"><span>Payment Link:</span> <span id="dispPayLink">Online Payment</span></div>
+                </div>
+            </div>
+
+            <div class="tnc-section" id="invoiceTnc" style="display: none;">
+                <h4 id="tncHeaderTitle">Terms & Conditions</h4>
+                <ul id="invoiceTncList">
+                    <!-- JS inserts terms here -->
+                </ul>
+            </div>
+
+            <div class="footer-note" id="invoiceFooter" style="display: none;">
+                <div id="footerTextLeft">Thank you for choosing Practo Healthcare Solutions.</div>
+                <div class="sender-details" id="pdfSenderDetails"></div>
+            </div>
+            
+            <div id="emptyStatePreview" style="text-align: center; padding: 100px 20px; color: var(--text-muted);">
+                <div style="font-size: 40px; margin-bottom: 20px;">📄</div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main);">Live Document Preview</h3>
+                <p style="font-size: 0.9rem; margin-top: 8px;">Select products and configure details on the left to see the proposal generate in real-time.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>⚙️ System Settings</h3>
+            <button onclick="closeSettings()">✕</button>
+        </div>
+        <div class="modal-body">
+            
+            <div class="section-title">Authentication & Access</div>
+            <div class="grid-2">
+                <div class="form-group"><label>Login User ID</label><input type="text" id="settingLoginUser" value="practo"></div>
+                <div class="form-group"><label>Login Password</label><input type="text" id="settingLoginPass" value="practo"></div>
+            </div>
+
+            <div class="section-title">Seller Information (Customizable)</div>
+            <div class="grid-2">
+                <div class="form-group"><label>Seller Company Name</label><input type="text" id="settingSellerName" value="Practo Technologies Pvt. Ltd."></div>
+                <div class="form-group"><label>Seller TAN</label><input type="text" id="settingSellerTan" value="BLRN05947E"></div>
+                <div class="form-group"><label>Seller CIN</label><input type="text" id="settingSellerCin" value="U72900KA2008PTC046374"></div>
+                <div class="form-group"><label>Seller PAN</label><input type="text" id="settingSellerPan" value="AACCN8042Q"></div>
+                <div class="form-group"><label>Seller GSTIN</label><input type="text" id="settingSellerGst" value="29AAICC3651Q1Z0"></div>
+            </div>
+            <div class="form-group">
+                <label>Seller Registered Address</label>
+                <textarea id="settingSellerAddr">First Floor, No.275 13th Cross Road, 19th Main Road, HSR Layout 4th Sector, Bengaluru Urban, Karnataka - 560102</textarea>
+            </div>
+
+            <div class="section-title">Bank Details (Customizable)</div>
+            <div class="grid-2">
+                <div class="form-group"><label>Beneficiary Name</label><input type="text" id="settingBene" value="Practo Technologies Pvt. Ltd."></div>
+                <div class="form-group"><label>Bank Name & Branch</label><input type="text" id="settingBank" value="HDFC, JP Nagar, Bangalore"></div>
+                <div class="form-group"><label>Account Number</label><input type="text" id="settingAccNo" value="01332320001144"></div>
+                <div class="form-group"><label>IFSC Code</label><input type="text" id="settingIfsc" value="HDFC0000133"></div>
+                <div class="form-group"><label>Account Type</label><input type="text" id="settingAccType" value="Current"></div>
+                <div class="form-group"><label>Payment Link</label><input type="text" id="settingPayLink" value="Online Payment"></div>
+            </div>
+
+            <div class="section-title">Data Auto-Sync URL</div>
+            <div class="form-group">
+                <label>Google Sheet URL (managed by Sales Automation — auto-sync every 15 min)</label>
+                <input type="text" id="settingSheetUrl" readonly>
+            </div>
+
+            <div class="section-title">Personal Details (Shows on PDF)</div>
+            <div class="grid-3">
+                <div class="form-group"><label>Sender Name</label><input type="text" id="settingName" placeholder="Your Name"></div>
+                <div class="form-group"><label>Sender Phone</label><input type="text" id="settingPhone" placeholder="Mobile Number"></div>
+                <div class="form-group"><label>Sender Email</label><input type="text" id="settingEmail" placeholder="email@practo.com"></div>
+            </div>
+
+            <div class="section-title">Default Commercials</div>
+            <div class="grid-3">
+                <div class="form-group"><label>Deal Term</label>
+                    <select id="settingTerm">
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12">12 Months</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>GST (%)</label><input type="number" id="settingGst" value="18"></div>
+                <div class="form-group"><label>TDS (%)</label><input type="number" id="settingTds" value="2"></div>
+            </div>
+
+            <div class="section-title">Scope of Services Custom Templates</div>
+            <div class="form-group"><label>Practo Prime Scope</label><textarea id="settingScopePrime"></textarea></div>
+            <div class="form-group"><label>Practo Reach Scope</label><textarea id="settingScopeReach"></textarea></div>
+            <div class="form-group"><label>Video Shoot Scope</label><textarea id="settingScopeVideo"></textarea></div>
+
+            <div class="section-title">Official Output Templates</div>
+            <div class="form-group"><label>Terms & Conditions (Shows on PDF)</label><textarea id="settingTnc"></textarea></div>
+            <div class="info-box">Use tags: <strong>[ITEMS]</strong>, <strong>[NET_AMOUNT]</strong>, <strong>[SENDER_NAME]</strong> to auto-fill templates below.</div>
+            <div class="form-group"><label>WhatsApp Template</label><textarea id="settingWaTemplate"></textarea></div>
+            <div class="form-group"><label>Email Body Template</label><textarea id="settingEmailTemplate"></textarea></div>
+
+            <div class="danger-zone">
+                <h4>Danger Zone</h4>
+                <button class="btn" style="background: #E11D48; color: white; width: 100%;" onclick="clearDatabase()">🗑️ Clear Saved Database Cache</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" style="width: auto;" onclick="saveSettings()">Save Preferences</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let sheetData = [];
+    let reachBlockCount = 0;
+    let sharePayload = { items: "", net: "" };
+    let generatedAiPitch = "";
+    
+    let defaultTnc = "This commercial proposal is valid for 15 days from the date of issue.\nServices will be activated post realization of 100% advance payment.\nAll reach visibility and digital assets are subject to Practo's standard content guidelines and approval processes.\nTDS (Tax Deducted at Source) must be deducted and deposited by the client as per applicable Income Tax slabs.\nFinal agreements are governed strictly by Practo's Terms of Service available on the official website.";
+
+    let proformaTncText = "Note: This is not a GST invoice, input GST credit cannot be taken based on Proforma Invoice or Purchase Order.";
+
+    let defaultScopePrime = "A premium technology product that delivers an exceptional patient experience. It guarantees assured appointments, minimal in-clinic wait times, 24x7 instant online booking, and a dedicated Prime visibility badge to elevate your clinic's premium reputation across the Practo network.";
+    let defaultScopeReach = "A targeted digital visibility solution that secures top-tier placement for your clinic on Practo's highly trafficked search engine. By hyper-targeting specific specialities and local zones, it maximizes patient discovery, engagement, and direct footfall.";
+    let defaultScopeVideo = "A complimentary on-site professional video and photo shoot designed to showcase your clinic's infrastructure and doctor profiles, instantly building patient trust and enhancing your digital presence.";
+
+    let appSettings = { 
+        name: '', phone: '', email: '', term: '3', gst: 18, tds: 2, 
+        loginUser: 'practo', loginPass: 'practo',
+        sellerName: 'Practo Technologies Pvt. Ltd.', sellerTan: 'BLRN05947E', sellerCin: 'U72900KA2008PTC046374', sellerPan: 'AACCN8042Q', sellerGst: '29AAICC3651Q1Z0',
+        sellerAddr: 'First Floor, No.275 13th Cross Road, 19th Main Road, HSR Layout 4th Sector, Bengaluru Urban, Karnataka - 560102',
+        beneName: 'Practo Technologies Pvt. Ltd.', bankName: 'HDFC, JP Nagar, Bangalore', accNo: '01332320001144', ifsc: 'HDFC0000133', accType: 'Current', payLink: 'Online Payment',
+        sheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv',
+        tnc: defaultTnc,
+        scopePrime: defaultScopePrime, scopeReach: defaultScopeReach, scopeVideo: defaultScopeVideo,
+        waTemp: `*Practo Official Commercial Summary*\n\nDear Doctor,\nHere is the custom proposal summary for your clinic:\n\n*Services Included:*\n[ITEMS]\n*Final Investment Amount:* ₹[NET_AMOUNT]\n\nPlease let me know if you have any questions.\n\nBest Regards,\n[SENDER_NAME]\nPracto Enterprise Team`,
+        emailTemp: `Dear Doctor,\n\nThank you for taking the time to discuss Practo's digital solutions for your clinic.\n\nSummary of Services:\n[ITEMS]\nNet Payable Amount: ₹[NET_AMOUNT]\n\nPlease review the proposal and reply if you have any questions.\n\nBest Regards,\n[SENDER_NAME]\nPracto Enterprise Team`
+    };
+
+    const EMBEDDED = new URLSearchParams(location.search).get('embed') === '1'
+        || (window.parent && window.parent !== window);
+
+    window.onload = function() {
+        if (EMBEDDED) {
+            sessionStorage.setItem('practoAuthActive', 'true');
+            const loginEl = document.getElementById('loginModal');
+            if (loginEl) loginEl.style.display = 'none';
+            const logoutBtn = document.querySelector('.btn-logout');
+            if (logoutBtn) logoutBtn.style.display = 'none';
+        } else {
+            checkAuth();
+        }
+        document.getElementById('invoiceDate').innerText = 'Issued: ' + new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        loadSettings(); 
+        addReachBlock(); 
+        
+        // Always auto-sync from backend-cached Google Sheet (no CSV upload)
+        fetchSheetData(appSettings.sheetUrl);
+        setInterval(function() { fetchSheetData(appSettings.sheetUrl, true); }, 15 * 60 * 1000);
+    };
+
+    function getSalesAuthToken() {
+        try {
+            return localStorage.getItem('practo_sales_token') || '';
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function manualRefreshSheet() {
+        fetchSheetData(appSettings.sheetUrl, false, true);
+    }
+
+    // --- NEW DISCOUNT SYNC FUNCTIONS ---
+    function getReachMonthlyTotal() {
+        let reachMonthly = 0;
+        const hasReach = document.getElementById('toggle-reach').checked;
+        
+        if (hasReach) {
+            const blocks = document.querySelectorAll('.reach-block');
+            blocks.forEach((block) => {
+                const id = block.id.split('_')[1];
+                const citySel = document.getElementById(`spotlightCity_${id}`);
+                const zoneSel = document.getElementById(`spotlightZone_${id}`);
+                const specSel = document.getElementById(`spotlightSpeciality_${id}`);
+                const posSel = document.getElementById(`spotlightPosition_${id}`);
+                const qtySel = document.getElementById(`spotlightQuantity_${id}`);
+                const priceInp = document.getElementById(`spotlightFoundPrice_${id}`);
+
+                if (citySel && zoneSel && specSel && posSel && qtySel && priceInp) {
+                    const city = citySel.value;
+                    const zone = zoneSel.value;
+                    const spec = specSel.value;
+                    const pos = posSel.value;
+                    const qty = parseInt(qtySel.value) || 0;
+                    const price = parseFloat(priceInp.value) || 0;
+
+                    // Calculate strictly on per month value basis
+                    if (city && zone && spec && pos && price > 0 && qty > 0) {
+                        reachMonthly += (price * qty); 
+                    }
+                }
+            });
+        }
+        return reachMonthly;
+    }
+
+    function updateDiscountPercentSync() {
+        const reachMonthly = getReachMonthlyTotal();
+        const amt = parseFloat(document.getElementById('discountAmount').value) || 0;
+        
+        if (reachMonthly > 0) {
+            let pct = (amt / reachMonthly) * 100;
+            if (pct > 100) pct = 100;
+            document.getElementById('discountPercent').value = pct.toFixed(2);
+        } else {
+            document.getElementById('discountPercent').value = 0;
+        }
+        
+        triggerUpdate();
+    }
+
+    // --- AUTHENTICATION ---
+    function checkAuth() {
+        const isAuth = sessionStorage.getItem('practoAuthActive');
+        if (isAuth !== 'true') {
+            document.getElementById('loginModal').style.display = 'flex';
+        } else {
+            document.getElementById('loginModal').style.display = 'none';
+        }
+    }
+
+    function handleLogin() {
+        const u = document.getElementById('loginUser').value.trim();
+        const p = document.getElementById('loginPass').value.trim();
+        const storedU = localStorage.getItem('practoSettingLoginUser') || appSettings.loginUser;
+        const storedP = localStorage.getItem('practoSettingLoginPass') || appSettings.loginPass;
+
+        if (u === storedU && p === storedP) {
+            sessionStorage.setItem('practoAuthActive', 'true');
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('loginError').style.display = 'none';
+        } else {
+            document.getElementById('loginError').style.display = 'block';
+        }
+    }
+
+    function handleLogout() {
+        sessionStorage.removeItem('practoAuthActive');
+        location.reload();
+    }
+
+    // --- DOCUMENT TYPE TOGGLE ---
+    function toggleDocumentType() {
+        const docType = document.getElementById('documentType').value;
+        const profSection = document.getElementById('proformaConfigSection');
+        const profMetaDisplay = document.getElementById('proformaMetaDisplay');
+        const bankBoxDisplay = document.getElementById('bankDetailsDisplayBox');
+        const tncBox = document.getElementById('settingTnc');
+
+        if (docType === 'PROFORMA INVOICE') {
+            profSection.style.display = 'block';
+            profMetaDisplay.style.display = 'block';
+            bankBoxDisplay.style.display = 'block';
+            if (!tncBox.value || tncBox.value === defaultTnc) {
+                tncBox.value = proformaTncText;
+            }
+        } else {
+            profSection.style.display = 'none';
+            profMetaDisplay.style.display = 'none';
+            bankBoxDisplay.style.display = 'none';
+            if (tncBox.value === proformaTncText) {
+                tncBox.value = defaultTnc;
+            }
+        }
+        triggerUpdate();
+    }
+
+    // --- UNLOAD FILE UTILITY ---
+    function unloadMasterFile() {
+        // CSV upload removed — re-sync from Google Sheet instead
+        fetchSheetData(appSettings.sheetUrl, false, true);
+    }
+
+    // --- SETTINGS MANAGEMENT ---
+    function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
+    function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+    
+    function loadSettings() {
+        appSettings.name = localStorage.getItem('practoSettingName') || '';
+        appSettings.phone = localStorage.getItem('practoSettingPhone') || '';
+        appSettings.email = localStorage.getItem('practoSettingEmail') || '';
+        appSettings.term = localStorage.getItem('practoSettingTerm') || '3';
+        appSettings.gst = localStorage.getItem('practoSettingGst') || 18;
+        appSettings.tds = localStorage.getItem('practoSettingTds') || 2;
+        appSettings.sheetUrl = localStorage.getItem('practoSettingSheetUrl') || appSettings.sheetUrl;
+        appSettings.loginUser = localStorage.getItem('practoSettingLoginUser') || appSettings.loginUser;
+        appSettings.loginPass = localStorage.getItem('practoSettingLoginPass') || appSettings.loginPass;
+
+        appSettings.sellerName = localStorage.getItem('settingSellerName') || appSettings.sellerName;
+        appSettings.sellerTan = localStorage.getItem('settingSellerTan') || appSettings.sellerTan;
+        appSettings.sellerCin = localStorage.getItem('settingSellerCin') || appSettings.sellerCin;
+        appSettings.sellerPan = localStorage.getItem('settingSellerPan') || appSettings.sellerPan;
+        appSettings.sellerGst = localStorage.getItem('settingSellerGst') || appSettings.sellerGst;
+        appSettings.sellerAddr = localStorage.getItem('settingSellerAddr') || appSettings.sellerAddr;
+
+        appSettings.beneName = localStorage.getItem('settingBene') || appSettings.beneName;
+        appSettings.bankName = localStorage.getItem('settingBank') || appSettings.bankName;
+        appSettings.accNo = localStorage.getItem('settingAccNo') || appSettings.accNo;
+        appSettings.ifsc = localStorage.getItem('settingIfsc') || appSettings.ifsc;
+        appSettings.accType = localStorage.getItem('settingAccType') || appSettings.accType;
+        appSettings.payLink = localStorage.getItem('settingPayLink') || appSettings.payLink;
+        
+        appSettings.tnc = localStorage.getItem('practoSettingTnc') || appSettings.tnc;
+        appSettings.scopePrime = localStorage.getItem('practoSettingScopePrime') || appSettings.scopePrime;
+        appSettings.scopeReach = localStorage.getItem('practoSettingScopeReach') || appSettings.scopeReach;
+        appSettings.scopeVideo = localStorage.getItem('practoSettingScopeVideo') || appSettings.scopeVideo;
+        appSettings.waTemp = localStorage.getItem('practoSettingWaTemp') || appSettings.waTemp;
+        appSettings.emailTemp = localStorage.getItem('practoSettingEmailTemp') || appSettings.emailTemp;
+        
+        document.getElementById('settingName').value = appSettings.name;
+        document.getElementById('settingPhone').value = appSettings.phone;
+        document.getElementById('settingEmail').value = appSettings.email;
+        document.getElementById('settingTerm').value = appSettings.term;
+        document.getElementById('settingGst').value = appSettings.gst;
+        document.getElementById('settingTds').value = appSettings.tds;
+        document.getElementById('settingSheetUrl').value = appSettings.sheetUrl;
+        document.getElementById('settingLoginUser').value = appSettings.loginUser;
+        document.getElementById('settingLoginPass').value = appSettings.loginPass;
+
+        document.getElementById('settingSellerName').value = appSettings.sellerName;
+        document.getElementById('settingSellerTan').value = appSettings.sellerTan;
+        document.getElementById('settingSellerCin').value = appSettings.sellerCin;
+        document.getElementById('settingSellerPan').value = appSettings.sellerPan;
+        document.getElementById('settingSellerGst').value = appSettings.sellerGst;
+        document.getElementById('settingSellerAddr').value = appSettings.sellerAddr;
+
+        document.getElementById('settingBene').value = appSettings.beneName;
+        document.getElementById('settingBank').value = appSettings.bankName;
+        document.getElementById('settingAccNo').value = appSettings.accNo;
+        document.getElementById('settingIfsc').value = appSettings.ifsc;
+        document.getElementById('settingAccType').value = appSettings.accType;
+        document.getElementById('settingPayLink').value = appSettings.payLink;
+
+        document.getElementById('settingTnc').value = appSettings.tnc;
+        document.getElementById('settingScopePrime').value = appSettings.scopePrime;
+        document.getElementById('settingScopeReach').value = appSettings.scopeReach;
+        document.getElementById('settingScopeVideo').value = appSettings.scopeVideo;
+        document.getElementById('settingWaTemplate').value = appSettings.waTemp;
+        document.getElementById('settingEmailTemplate').value = appSettings.emailTemp;
+
+        document.getElementById('taxPercent').value = appSettings.gst;
+        document.getElementById('tdsPercent').value = appSettings.tds;
+        updateSenderFooter();
+        toggleDocumentType();
+    }
+
+    function saveSettings() {
+        appSettings.name = document.getElementById('settingName').value;
+        appSettings.phone = document.getElementById('settingPhone').value;
+        appSettings.email = document.getElementById('settingEmail').value;
+        appSettings.term = document.getElementById('settingTerm').value;
+        appSettings.gst = document.getElementById('settingGst').value;
+        appSettings.tds = document.getElementById('settingTds').value;
+        appSettings.sheetUrl = document.getElementById('settingSheetUrl').value;
+        appSettings.loginUser = document.getElementById('settingLoginUser').value;
+        appSettings.loginPass = document.getElementById('settingLoginPass').value;
+
+        appSettings.sellerName = document.getElementById('settingSellerName').value;
+        appSettings.sellerTan = document.getElementById('settingSellerTan').value;
+        appSettings.sellerCin = document.getElementById('settingSellerCin').value;
+        appSettings.sellerPan = document.getElementById('settingSellerPan').value;
+        appSettings.sellerGst = document.getElementById('settingSellerGst').value;
+        appSettings.sellerAddr = document.getElementById('settingSellerAddr').value;
+
+        appSettings.beneName = document.getElementById('settingBene').value;
+        appSettings.bankName = document.getElementById('settingBank').value;
+        appSettings.accNo = document.getElementById('settingAccNo').value;
+        appSettings.ifsc = document.getElementById('settingIfsc').value;
+        appSettings.accType = document.getElementById('settingAccType').value;
+        appSettings.payLink = document.getElementById('settingPayLink').value;
+
+        appSettings.tnc = document.getElementById('settingTnc').value;
+        appSettings.scopePrime = document.getElementById('settingScopePrime').value;
+        appSettings.scopeReach = document.getElementById('settingScopeReach').value;
+        appSettings.scopeVideo = document.getElementById('settingScopeVideo').value;
+        appSettings.waTemp = document.getElementById('settingWaTemplate').value;
+        appSettings.emailTemp = document.getElementById('settingEmailTemplate').value;
+        
+        localStorage.setItem('practoSettingName', appSettings.name);
+        localStorage.setItem('practoSettingPhone', appSettings.phone);
+        localStorage.setItem('practoSettingEmail', appSettings.email);
+        localStorage.setItem('practoSettingTerm', appSettings.term);
+        localStorage.setItem('practoSettingGst', appSettings.gst);
+        localStorage.setItem('practoSettingTds', appSettings.tds);
+        localStorage.setItem('practoSettingSheetUrl', appSettings.sheetUrl);
+        localStorage.setItem('practoSettingLoginUser', appSettings.loginUser);
+        localStorage.setItem('practoSettingLoginPass', appSettings.loginPass);
+
+        localStorage.setItem('settingSellerName', appSettings.sellerName);
+        localStorage.setItem('settingSellerTan', appSettings.sellerTan);
+        localStorage.setItem('settingSellerCin', appSettings.sellerCin);
+        localStorage.setItem('settingSellerPan', appSettings.sellerPan);
+        localStorage.setItem('settingSellerGst', appSettings.sellerGst);
+        localStorage.setItem('settingSellerAddr', appSettings.sellerAddr);
+
+        localStorage.setItem('settingBene', appSettings.beneName);
+        localStorage.setItem('settingBank', appSettings.bankName);
+        localStorage.setItem('settingAccNo', appSettings.accNo);
+        localStorage.setItem('settingIfsc', appSettings.ifsc);
+        localStorage.setItem('settingAccType', appSettings.accType);
+        localStorage.setItem('settingPayLink', appSettings.payLink);
+
+        localStorage.setItem('practoSettingTnc', appSettings.tnc);
+        localStorage.setItem('practoSettingScopePrime', appSettings.scopePrime);
+        localStorage.setItem('practoSettingScopeReach', appSettings.scopeReach);
+        localStorage.setItem('practoSettingScopeVideo', appSettings.scopeVideo);
+        localStorage.setItem('practoSettingWaTemp', appSettings.waTemp);
+        localStorage.setItem('practoSettingEmailTemp', appSettings.emailTemp);
+        
+        document.getElementById('taxPercent').value = appSettings.gst;
+        document.getElementById('tdsPercent').value = appSettings.tds;
+        
+        updateSenderFooter();
+        closeSettings();
+        
+        if(appSettings.sheetUrl) fetchSheetData(appSettings.sheetUrl);
+        else triggerUpdate(); 
+    }
+
+    function updateSenderFooter() {
+        const footerDetails = document.getElementById('pdfSenderDetails');
+        let parts = [];
+        if(appSettings.name) parts.push(appSettings.name);
+        if(appSettings.phone) parts.push(appSettings.phone);
+        if(appSettings.email) parts.push(appSettings.email);
+        
+        if(parts.length > 0) {
+            footerDetails.innerText = `Prepared by: ${parts.join(' | ')}`;
+        } else {
+            footerDetails.innerText = '';
+        }
+    }
+
+    function clearDatabase() {
+        if(confirm("Are you sure? This will permanently delete your cached pricing sheet.")) {
+            localStorage.removeItem('practoDatabaseProV15');
+            location.reload();
+        }
+    }
+
+    function updateHeaderStatus(text, type) {
+        const container = document.getElementById('headerStatus');
+        const pillClass = type === 'success' ? 'pill-success' : (type === 'error' ? 'pill-error' : 'pill-warning');
+        container.innerHTML = `<span class="status-pill ${pillClass}">● ${text}</span>`;
+    }
+
+    function toggleSection(module) {
+        const checkbox = document.getElementById(`toggle-${module}`);
+        const card = document.getElementById(`card-${module}`);
+        const section = document.getElementById(`section-${module}`);
+        
+        if (checkbox.checked) {
+            card.classList.add('active');
+            if(section) section.classList.add('active');
+        } else {
+            card.classList.remove('active');
+            if(section) section.classList.remove('active');
+        }
+        triggerUpdate();
+    }
+
+    function updatePrimeFields() {
+        const variant = document.getElementById('primeVariant').value;
+        const supremeFields = document.getElementById('primeSupremeFields');
+        const aiFields = document.getElementById('primeAiFields');
+
+        if (variant === 'supreme') {
+            supremeFields.style.display = 'grid';
+            aiFields.style.display = 'none';
+        } else {
+            supremeFields.style.display = 'none';
+            aiFields.style.display = 'block';
+        }
+        triggerUpdate();
+    }
+
+    function getUniqueValues(data, key) { 
+        return [...new Set(data.map(item => item[key]).filter(val => val !== undefined && val !== null && val !== ''))].sort(); 
+    }
+    
+    function populateDropdown(element, options) {
+        if (!element) return;
+        const currentVal = element.value;
+        element.innerHTML = '<option value="">-- Select --</option>';
+        options.forEach(opt => element.innerHTML += `<option value="${opt}">${opt}</option>`);
+        if (currentVal && options.includes(currentVal)) element.value = currentVal;
+    }
+    
+    function formatCurrency(num) { return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    function transformHeader(header) {
+        let h = header ? header.trim().toLowerCase() : '';
+        if(h.includes('city')) return 'City'; 
+        if(h.includes('zone')) return 'Zone';
+        if(h.includes('speciality') || h.includes('specialty')) return 'Speciality'; 
+        if(h.includes('position')) return 'Position';
+        if(h.includes('3m')) return 'Price_3M';
+        if(h.includes('6m')) return 'Price_6M';
+        if(h.includes('12m')) return 'Price_12M';
+        if(h.includes('price') || h.includes('pricing')) return 'Pricing';
+        if(h.includes('total slot') || h === 'total_slots') return 'TotalSlots';
+        if(h.includes('available slot') || h === 'available_slots' || h === 'slots') return 'AvailableSlots';
+        return header ? header.trim() : '';
+    }
+
+    function applyParsedSheet(results, quiet) {
+        if (results.errors.length > 0 && results.data.length === 0) {
+            updateHeaderStatus("Sync failed — retry shortly", "error");
+            document.getElementById('fileNameDisplay').innerText = "Sync failed";
+            return;
+        }
+        sheetData = results.data;
+        try { localStorage.setItem('practoDatabaseProV15', JSON.stringify(sheetData)); } catch(e){}
+        populateUI(sheetData, false);
+        const n = sheetData.length;
+        document.getElementById('uploadBoxLabel').innerText = "Google Sheet Auto-Sync";
+        document.getElementById('fileNameDisplay').innerText = n.toLocaleString('en-IN') + " inventory rows · live";
+        if (!quiet) updateHeaderStatus("Live Database Synced (" + n.toLocaleString('en-IN') + " rows)", "success");
+    }
+
+    async function fetchSheetData(url, quiet, forceRefresh) {
+        if (!quiet) updateHeaderStatus("Auto-Syncing...", "warning");
+        document.getElementById('fileNameDisplay').innerText = forceRefresh ? "Refreshing…" : "Syncing from Google Sheet…";
+
+        const token = getSalesAuthToken();
+        const apiUrl = '/api/commercial/inventory.csv' + (forceRefresh ? '?refresh=1' : '');
+
+        try {
+            const headers = { Accept: 'text/csv,text/plain,*/*' };
+            if (token) headers.Authorization = 'Bearer ' + token;
+            const res = await fetch(apiUrl, { headers, cache: 'no-store' });
+            if (res.ok) {
+                const csvData = await res.text();
+                Papa.parse(csvData, {
+                    header: true, skipEmptyLines: 'greedy', relaxColumnCount: true,
+                    transformHeader: function(header) { return transformHeader(header); },
+                    transform: function(value) { return value ? String(value).trim() : ''; },
+                    complete: function(results) { applyParsedSheet(results, quiet); }
+                });
+                return;
+            }
+        } catch (e) {
+            console.warn('API sheet sync failed, trying proxy', e);
+        }
+
+        // Fallback: published Google Sheet via CORS proxy
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url || https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv');
+        Papa.parse(proxyUrl, {
+            download: true, header: true, skipEmptyLines: 'greedy', relaxColumnCount: true,
+            transformHeader: function(header) { return transformHeader(header); },
+            transform: function(value) { return value ? String(value).trim() : ''; },
+            complete: function(results) { applyParsedSheet(results, quiet); },
+            error: function() {
+                updateHeaderStatus("Auto-sync unavailable — retry later", "error");
+                document.getElementById('fileNameDisplay').innerText = "Auto-sync failed";
+            }
+        });
+    }
+
+    function populateUI(data, isCached) {
+        const blocks = document.querySelectorAll('.reach-block');
+        blocks.forEach(block => {
+            const id = block.id.split('_')[1];
+            populateDropdown(document.getElementById(`spotlightCity_${id}`), getUniqueValues(data, 'City'));
+        });
+        updateHeaderStatus("Database Active", "success");
+        triggerUpdate();
+    }
+
+    function addReachBlock() {
+        reachBlockCount++;
+        const id = reachBlockCount;
+        const defaultDur = appSettings.term || '3';
+        
+        const blockHtml = `
+            <div class="reach-block" id="reachBlock_${id}">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h4 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary-accent);">Campaign Configuration ${id}</h4>
+                    ${id > 1 ? `<button type="button" class="btn-remove" onclick="removeReachBlock(${id})">✕ Remove</button>` : ''}
+                </div>
+                
+                <div class="grid-2" style="margin-bottom: 12px;">
+                    <div class="form-group"><label>City</label><select id="spotlightCity_${id}" onchange="updateCascading(${id}, 'city')"><option value="">-- Select --</option></select></div>
+                    <div class="form-group"><label>Zone</label><select id="spotlightZone_${id}" onchange="updateCascading(${id}, 'zone')"><option value="">-- Select --</option></select></div>
+                </div>
+                <div class="grid-2" style="margin-bottom: 16px;">
+                    <div class="form-group"><label>Speciality</label><select id="spotlightSpeciality_${id}" onchange="updateCascading(${id}, 'speciality')"><option value="">-- Select --</option></select></div>
+                    <div class="form-group"><label>Position</label><select id="spotlightPosition_${id}" onchange="updateCascading(${id}, 'position')"><option value="">-- Select --</option></select></div>
+                </div>
+
+                <div style="background: #fff; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                    <div class="grid-2">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Term</label>
+                            <select id="spotlightDuration_${id}" onchange="checkSlotStatus(${id})">
+                                <option value="3" ${defaultDur==='3'?'selected':''}>3 Months</option>
+                                <option value="6" ${defaultDur==='6'?'selected':''}>6 Months</option>
+                                <option value="12" ${defaultDur==='12'?'selected':''}>12 Months</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Available Slots (%)</label>
+                            <div id="spotlightAvailable_${id}" class="slot-box-display" style="background:#F8FAFC; border-color:var(--border-light); color:var(--text-main);">--</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2" style="margin-top: 12px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Base Price per slot (₹/mo) <span style="color:var(--brand-teal); font-size:0.7rem; font-weight:normal;">[Editable]</span></label>
+                            <input type="number" id="spotlightFoundPrice_${id}" placeholder="Auto-fetched or manual" oninput="triggerUpdate()">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Share of Slot</label>
+                            <select id="spotlightQuantity_${id}" onchange="triggerUpdate()"><option value="1">1 Slot</option></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="slot-indicator" id="slotStatus_${id}">Awaiting setup...</div>
+            </div>
+        `;
+        
+        document.getElementById('reachBlocksContainer').insertAdjacentHTML('beforeend', blockHtml);
+        if (sheetData.length > 0) populateDropdown(document.getElementById(`spotlightCity_${id}`), getUniqueValues(sheetData, 'City'));
+        triggerUpdate();
+    }
+
+    function removeReachBlock(id) {
+        document.getElementById(`reachBlock_${id}`).remove();
+        triggerUpdate();
+    }
+
+    function updateCascading(id, level) {
+        const citySel = document.getElementById(`spotlightCity_${id}`);
+        const zoneSel = document.getElementById(`spotlightZone_${id}`);
+        const specSel = document.getElementById(`spotlightSpeciality_${id}`);
+        const posSel = document.getElementById(`spotlightPosition_${id}`);
+
+        const city = citySel.value;
+        const zone = zoneSel.value;
+        const spec = specSel.value;
+
+        if (level === 'city') {
+            populateDropdown(zoneSel, getUniqueValues(sheetData.filter(r => r.City === city), 'Zone'));
+            populateDropdown(specSel, []); populateDropdown(posSel, []);
+        } else if (level === 'zone') {
+            populateDropdown(specSel, getUniqueValues(sheetData.filter(r => r.City === city && r.Zone === zone), 'Speciality'));
+            populateDropdown(posSel, []);
+        } else if (level === 'speciality') {
+            populateDropdown(posSel, getUniqueValues(sheetData.filter(r => r.City === city && r.Zone === zone && r.Speciality === spec), 'Position'));
+        }
+        checkSlotStatus(id);
+    }
+
+    function checkSlotStatus(id) {
+        const city = document.getElementById(`spotlightCity_${id}`).value;
+        const zone = document.getElementById(`spotlightZone_${id}`).value;
+        const spec = document.getElementById(`spotlightSpeciality_${id}`).value;
+        const pos = document.getElementById(`spotlightPosition_${id}`).value;
+        const dur = document.getElementById(`spotlightDuration_${id}`).value;
+        
+        const priceInput = document.getElementById(`spotlightFoundPrice_${id}`);
+        const qtySelect = document.getElementById(`spotlightQuantity_${id}`);
+        const availableDiv = document.getElementById(`spotlightAvailable_${id}`);
+        const statusLabel = document.getElementById(`slotStatus_${id}`);
+
+        if(!city || !zone || !spec || !pos) {
+            priceInput.value = '';
+            qtySelect.innerHTML = '<option value="1">1 Slot</option>';
+            qtySelect.dataset.total = 99;
+            availableDiv.innerHTML = '--';
+            statusLabel.innerHTML = `Awaiting full selection...`;
+            triggerUpdate();
+            return;
+        }
+
+        const match = sheetData.find(row => row.City === city && row.Zone === zone && row.Speciality === spec && row.Position === pos);
+
+        if(match) {
+            let basePrice = 0;
+            if (dur == '3' && match.Price_3M) basePrice = match.Price_3M;
+            else if (dur == '6' && match.Price_6M) basePrice = match.Price_6M;
+            else if (dur == '12' && match.Price_12M) basePrice = match.Price_12M;
+            else basePrice = match.Pricing || 0;
+
+            priceInput.value = basePrice;
+            
+            const availableSlots = match.hasOwnProperty('AvailableSlots') && match.AvailableSlots !== '' ? parseInt(match.AvailableSlots) : 
+                                   (match.hasOwnProperty('Slots') && match.Slots !== '' ? parseInt(match.Slots) : 99);
+            const totalSlots = match.hasOwnProperty('TotalSlots') && match.TotalSlots !== '' ? parseInt(match.TotalSlots) : availableSlots;
+
+            if(availableSlots > 0) {
+                statusLabel.innerHTML = `✓ Active`;
+
+                if (availableSlots === 99) {
+                    availableDiv.innerHTML = `Available`;
+                } else {
+                    const availPct = Math.round((availableSlots / totalSlots) * 100);
+                    availableDiv.innerHTML = `${availableSlots} of ${totalSlots} Slots (${availPct}% Available)`;
+                }
+                
+                const currentQty = parseInt(qtySelect.value) || 1;
+                qtySelect.innerHTML = '';
+                const maxOpts = availableSlots === 99 ? 10 : availableSlots;
+                for(let i=1; i<=maxOpts; i++) {
+                    qtySelect.innerHTML += `<option value="${i}">${i} Slot${i>1?'s':''}</option>`;
+                }
+                qtySelect.value = currentQty <= maxOpts ? currentQty : 1;
+                qtySelect.dataset.total = totalSlots;
+
+            } else {
+                statusLabel.innerHTML = `<span style="color: #E11D48;">✕ Sold Out</span>`;
+                priceInput.value = '';
+                availableDiv.innerHTML = `Sold Out`;
+                qtySelect.innerHTML = '<option value="0">0 Slots</option>';
+                qtySelect.dataset.total = totalSlots;
+            }
+        } else {
+            statusLabel.innerHTML = `<span style="color: #D97706;">⚠ Not found in database</span>`;
+            priceInput.value = ''; 
+            availableDiv.innerHTML = `--`;
+            qtySelect.innerHTML = '<option value="1">1 Slot</option>';
+            qtySelect.dataset.total = 99;
+        }
+        triggerUpdate();
+    }
+
+    function triggerUpdate() {
+        const hasPrime = document.getElementById('toggle-prime').checked;
+        const hasReach = document.getElementById('toggle-reach').checked;
+        const hasVideo = document.getElementById('toggle-video').checked;
+        const docType = document.getElementById('documentType').value;
+
+        document.getElementById('proposalTitleDisplay').innerText = docType;
+
+        const isProforma = (docType === 'PROFORMA INVOICE');
+        document.getElementById('proformaMetaDisplay').style.display = isProforma ? 'block' : 'none';
+        document.getElementById('bankDetailsDisplayBox').style.display = isProforma ? 'block' : 'none';
+        document.getElementById('sacHeaderCell').style.display = isProforma ? 'table-cell' : 'none';
+
+        if (isProforma) {
+            document.getElementById('dispInvNo').innerText = document.getElementById('profInvNo').value;
+            document.getElementById('dispClientName').innerText = document.getElementById('profClientName').value;
+            document.getElementById('dispClientPan').innerText = document.getElementById('profClientPan').value;
+            document.getElementById('dispClientGst').innerText = document.getElementById('profClientGst').value;
+            document.getElementById('dispClientAddr').innerText = document.getElementById('profClientAddr').value;
+            document.getElementById('dispServiceCat').innerText = document.getElementById('profServiceCat').value;
+
+            document.getElementById('dispSellerName').innerText = document.getElementById('settingSellerName').value || appSettings.sellerName;
+            document.getElementById('dispSellerTan').innerText = document.getElementById('settingSellerTan').value || appSettings.sellerTan;
+            document.getElementById('dispSellerCin').innerText = document.getElementById('settingSellerCin').value || appSettings.sellerCin;
+            document.getElementById('dispSellerPan').innerText = document.getElementById('settingSellerPan').value || appSettings.sellerPan;
+            document.getElementById('dispSellerGst').innerText = document.getElementById('settingSellerGst').value || appSettings.sellerGst;
+            document.getElementById('dispSellerAddr').innerText = document.getElementById('settingSellerAddr').value || appSettings.sellerAddr;
+
+            document.getElementById('dispBene').innerText = document.getElementById('settingBene').value || appSettings.beneName;
+            document.getElementById('dispBank').innerText = document.getElementById('settingBank').value || appSettings.bankName;
+            document.getElementById('dispAccNo').innerText = document.getElementById('settingAccNo').value || appSettings.accNo;
+            document.getElementById('dispIfsc').innerText = document.getElementById('settingIfsc').value || appSettings.ifsc;
+            document.getElementById('dispAccType').innerText = document.getElementById('settingAccType').value || appSettings.accType;
+            document.getElementById('dispPayLink').innerText = document.getElementById('settingPayLink').value || appSettings.payLink;
+        }
+
+        const emptyState = document.getElementById('emptyStatePreview');
+        const scopeBox = document.getElementById('dynamicScopeBox');
+        const invoiceTable = document.getElementById('invoiceTable');
+        const invoiceFooter = document.getElementById('invoiceFooter');
+        const invoiceTnc = document.getElementById('invoiceTnc');
+        const invoiceTncList = document.getElementById('invoiceTncList');
+        const tbody = document.getElementById('invoiceTableBody');
+
+        document.getElementById('scopeTextPrime').innerText = appSettings.scopePrime;
+        document.getElementById('scopeTextReach').innerText = appSettings.scopeReach;
+        document.getElementById('scopeTextVideo').innerText = appSettings.scopeVideo;
+
+        if (!hasPrime && !hasReach && !hasVideo) {
+            emptyState.style.display = 'block';
+            scopeBox.style.display = 'none';
+            invoiceTable.style.display = 'none';
+            invoiceFooter.style.display = 'none';
+            invoiceTnc.style.display = 'none';
+            updateAI(null, null, null);
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        scopeBox.style.display = 'block';
+        invoiceTable.style.display = 'table';
+        invoiceFooter.style.display = 'flex';
+        invoiceTnc.style.display = 'block';
+        tbody.innerHTML = ''; 
+
+        const tncLines = document.getElementById('settingTnc').value.split('\n').filter(line => line.trim() !== '');
+        invoiceTncList.innerHTML = tncLines.map(line => `<li>${line}</li>`).join('');
+
+        let subtotal = 0;
+        let reachTotal = 0; // Tracks the total for Reach specifically
+        let shareItemsText = ""; 
+        let maxDur = 3;
+        let sacCodeVal = isProforma ? document.getElementById('profSacCode').value : '998313';
+
+        if (hasPrime) {
+            const variant = document.getElementById('primeVariant').value;
+            const primeAmount = parseFloat(document.getElementById('primeAmount').value) || 0;
+            subtotal += primeAmount;
+
+            let primeDetailsText = "";
+            let sharePrimeText = "";
+
+            if (variant === 'supreme') {
+                const callCharge = document.getElementById('primeCallCharge').value || '0';
+                const bookCharge = document.getElementById('primeBookCharge').value || '0';
+                primeDetailsText = `Practo Prime Supreme | Call: ₹${callCharge}/conn, Book: ₹${bookCharge}/conn`;
+                sharePrimeText = `• Practo Prime Supreme (Call: ₹${callCharge}, Book: ₹${bookCharge})\n`;
+            } else {
+                const pfcCharge = document.getElementById('primePfcCharge').value || '0';
+                primeDetailsText = `Practo Prime AI | PFC: ₹${pfcCharge}/conn`;
+                sharePrimeText = `• Practo Prime AI (PFC: ₹${pfcCharge})\n`;
+            }
+
+            if (isProforma) {
+                tbody.innerHTML += `<tr>
+                    <td><strong>Practo Prime</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">${primeDetailsText}</span></td>
+                    <td>${sacCodeVal}</td>
+                    <td style="text-align: right; font-weight: 700;">${formatCurrency(primeAmount)}</td>
+                </tr>`;
+            } else {
+                tbody.innerHTML += `<tr>
+                    <td><strong>Practo Prime</strong><br><span style="font-size: 0.85em; color: var(--text-muted);">${primeDetailsText}</span></td>
+                    <td style="text-align: right; font-weight: 700;">${formatCurrency(primeAmount)}</td>
+                </tr>`;
+            }
+            shareItemsText += sharePrimeText;
+        }
+
+        if (hasReach) {
+            const blocks = document.querySelectorAll('.reach-block');
+            blocks.forEach((block, index) => {
+                const id = block.id.split('_')[1];
+                const city = document.getElementById(`spotlightCity_${id}`).value;
+                const zone = document.getElementById(`spotlightZone_${id}`).value;
+                const spec = document.getElementById(`spotlightSpeciality_${id}`).value;
+                const pos = document.getElementById(`spotlightPosition_${id}`).value;
+                
+                const dur = parseInt(document.getElementById(`spotlightDuration_${id}`).value) || 3;
+                if(dur > maxDur) maxDur = dur;
+
+                const qty = parseInt(document.getElementById(`spotlightQuantity_${id}`).value) || 0;
+                const totalSlots = parseInt(document.getElementById(`spotlightQuantity_${id}`).dataset.total) || 99;
+                const price = parseFloat(document.getElementById(`spotlightFoundPrice_${id}`).value) || 0;
+
+                if (city && zone && spec && pos && price > 0 && qty > 0) {
+                    const blockTotal = price * dur * qty; 
+                    reachTotal += blockTotal; // Tracking Reach Total separately
+                    subtotal += blockTotal;
+                    
+                    const sovText = totalSlots === 99 ? `${qty} Slot(s)` : `${qty} of ${totalSlots} Slots (${Math.round((qty/totalSlots)*100)}% Share of Slot)`;
+
+                    if (isProforma) {
+                        tbody.innerHTML += `<tr>
+                            <td><strong>${zone || city} | ${spec}</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">${pos} | ${dur} Months | ${sovText}</span></td>
+                            <td>${sacCodeVal}</td>
+                            <td style="text-align: right; font-weight: 700;">${formatCurrency(blockTotal)}</td>
+                        </tr>`;
+                    } else {
+                        tbody.innerHTML += `<tr>
+                            <td><strong>Practo Reach Spotlight ${blocks.length > 1 ? `(Campaign ${index+1})` : ''}</strong><br>
+                                <span style="font-size: 0.85em; color: var(--text-muted);">
+                                    ${city} | ${zone} | ${spec} | ${pos} <br>
+                                    Duration: ${dur} Months @ ₹${formatCurrency(price)}/mo per slot <br>
+                                    <span style="color: var(--brand-teal); font-weight: 700;">Share of Slot: ${sovText}</span>
+                                </span>
+                            </td>
+                            <td style="text-align: right; font-weight: 700; vertical-align: bottom;">${formatCurrency(blockTotal)}</td>
+                        </tr>`;
+                    }
+                    shareItemsText += `• Reach Campaign: ${city} | ${zone} | ${spec} (${dur}M | ${qty} Slot(s))\n`;
+                }
+            });
+        }
+
+        if (hasVideo) {
+            if (isProforma) {
+                tbody.innerHTML += `<tr>
+                    <td><strong>One Ad Video Shoot</strong><br><span style="font-size: 0.8em; color: var(--text-muted);">Complimentary On-Site Production</span></td>
+                    <td>${sacCodeVal}</td>
+                    <td style="text-align: right; font-weight: 800; color: var(--brand-teal);">Complimentary</td>
+                </tr>`;
+            } else {
+                tbody.innerHTML += `<tr>
+                    <td><strong>Professional Clinic Profile Video Shoot</strong><br><span style="font-size: 0.85em; color: var(--text-muted);">Exclusive On-Site Production</span></td>
+                    <td style="text-align: right; font-weight: 800; color: var(--brand-teal);">Complimentary</td>
+                </tr>`;
+            }
+            shareItemsText += `• Complimentary Profile Video Shoot\n`;
+        }
+
+        const discPct = parseFloat(document.getElementById('discountPercent').value) || 0;
+        const taxPct = parseFloat(document.getElementById('taxPercent').value) || 0;
+        const tdsPct = parseFloat(document.getElementById('tdsPercent').value) || 0;
+        const includeTds = document.getElementById('includeTdsCheckbox').checked;
+        
+        // DISCOUNT ONLY APPLIES TO REACH TOTAL NOW
+        const discAmt = reachTotal * (discPct / 100);
+
+        // UPDATE DISCOUNT AMOUNT FIELD AUTOMATICALLY IF USER ISN'T TYPING IN IT
+        if (document.activeElement.id !== 'discountAmount') {
+            const reachMonthly = getReachMonthlyTotal();
+            const perMonthDiscount = reachMonthly * (discPct / 100);
+            document.getElementById('discountAmount').value = perMonthDiscount > 0 ? perMonthDiscount.toFixed(2) : "0";
+        }
+
+        // Apply discount to arrive at base amount
+        const baseAmt = subtotal - discAmt;
+        const taxAmt = baseAmt * (taxPct / 100);
+        const invTotal = baseAmt + taxAmt;
+        const tdsAmt = baseAmt * (tdsPct / 100);
+        const netPayable = invTotal - tdsAmt;
+
+        const colspanVal = isProforma ? "2" : "1";
+
+        tbody.innerHTML += `
+            <tr class="row-total">
+                <td colspan="${colspanVal}" style="text-align: right;">${isProforma ? 'Total Amount Excluding GST -' : 'Gross Value'}</td>
+                <td style="text-align: right;">${formatCurrency(baseAmt)}</td>
+            </tr>`;
+
+        if (isProforma) {
+            tbody.innerHTML += `
+                <tr>
+                    <td colspan="2" style="text-align: right; font-size: 0.85rem;">Total Amount including GST ${taxPct}% -</td>
+                    <td style="text-align: right; font-weight: 700;">${formatCurrency(invTotal)}</td>
+                </tr>`;
+        } else {
+            // Updated discount line item text to show it only applied to Reach
+            tbody.innerHTML += `
+                <tr>
+                    <td style="text-align: right; font-size: 0.85rem;">Applied Discount (${discPct}% on Reach Products)</td>
+                    <td style="text-align: right; color: #DC2626; font-weight: 700;">- ${formatCurrency(discAmt)}</td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; font-size: 0.85rem;">GST (${taxPct}%)</td>
+                    <td style="text-align: right; font-weight: 700;">${formatCurrency(taxAmt)}</td>
+                </tr>
+                <tr class="row-total">
+                    <td style="text-align: right;">TOTAL INVOICE VALUE (Incl. GST)</td>
+                    <td style="text-align: right;">₹ ${formatCurrency(invTotal)}</td>
+                </tr>`;
+        }
+
+        if (includeTds) {
+            tbody.innerHTML += `
+                <tr>
+                    <td colspan="${colspanVal}" style="text-align: right; font-size: 0.8em; color: var(--text-muted);">TDS - ${tdsPct}%</td>
+                    <td style="text-align: right; font-size: 0.8em; color: var(--text-muted);">${formatCurrency(tdsAmt)}</td>
+                </tr>
+                <tr class="row-net">
+                    <td colspan="${colspanVal}" style="text-align: right;">${isProforma ? 'Payable Amount' : 'NET PAYABLE TO PRACTO'}</td>
+                    <td style="text-align: right;">₹ ${formatCurrency(netPayable)}</td>
+                </tr>`;
+        }
+
+        document.getElementById('scope-prime').style.display = hasPrime ? 'block' : 'none';
+        document.getElementById('scope-reach').style.display = hasReach ? 'block' : 'none';
+        document.getElementById('scope-video').style.display = hasVideo ? 'block' : 'none';
+
+        sharePayload.items = shareItemsText;
+        sharePayload.net = formatCurrency(includeTds ? netPayable : invTotal);
+
+        updateAI(hasPrime, hasReach, maxDur, discPct, formatCurrency(includeTds ? netPayable : invTotal));
+    }
+
+    function updateAI(hasPrime, hasReach, dur, discount, netAmount) {
+        const textEl = document.getElementById('aiCopilotText');
+        const scoreEl = document.getElementById('aiCopilotScore');
+        
+        if (!hasPrime && !hasReach) {
+            textEl.innerHTML = "Configure products to generate AI deal score and custom closing pitches.";
+            scoreEl.style.display = 'none';
+            generatedAiPitch = "";
+            return;
+        }
+
+        scoreEl.style.display = 'inline-block';
+        let score = 50;
+
+        if (dur === 12) { score += 30; }
+        else if (dur === 6) { score += 15; }
+        else { score -= 10; }
+
+        if (hasPrime) { score += 20; }
+        if (discount <= 10) { score += 10; }
+        else { score -= 15; }
+
+        score = Math.max(0, Math.min(100, score));
+        scoreEl.innerText = `Deal Score: ${score}/100`;
+        scoreEl.style.color = score >= 75 ? '#A7F3D0' : '#FDE68A';
+
+        let productFocus = [];
+        if(hasPrime) productFocus.push("Practo Prime for streamlined patient scheduling and zero wait times");
+        if(hasReach) productFocus.push("Practo Reach Spotlight to secure top-tier local visibility");
+        
+        generatedAiPitch = `Hello Doctor, following our discussion on elevating your clinic's digital presence, we have curated a custom growth package featuring ${productFocus.join(' and ')}. With a ${dur}-month commitment, this structure ensures robust patient acquisition and practice efficiency for an investment of ₹${netAmount} (all-inclusive). Let’s confirm this to secure your slots today!`;
+        
+        textEl.innerHTML = `<strong>AI Pitch Ready:</strong> "${generatedAiPitch.substring(0, 110)}..."`;
+    }
+
+    function copyAiPitch() {
+        if (!generatedAiPitch) {
+            alert("Please configure a proposal first to generate an AI pitch.");
+            return;
+        }
+        navigator.clipboard.writeText(generatedAiPitch).then(() => {
+            alert("✨ AI Pitch copied to clipboard! You can now paste it directly into WhatsApp or Email.");
+        });
+    }
+
+    function downloadPDF() {
+        if(!sharePayload.items) return alert("Please configure a proposal first.");
+        const element = document.getElementById('invoiceContent');
+        element.style.boxShadow = 'none';
+        element.style.border = 'none';
+        element.style.padding = '20px';
+        window.scrollTo(0, 0); 
+        
+        const docType = document.getElementById('documentType').value;
+        const filename = docType === 'PROFORMA INVOICE' ? 'Practo_Proforma_Invoice.pdf' : 'Practo_Commercial_Proposal.pdf';
+
+        const opt = { 
+            margin: [0.4, 0.4, 0.4, 0.4], 
+            filename: filename, 
+            image: { type: 'jpeg', quality: 0.98 }, 
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', letterRendering: true }, 
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'], avoid: ['.invoice-header', '.proforma-meta-box', '.product-overview', '.bank-details-box', '.tnc-section', '.footer-note'] }
+        };
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.style.boxShadow = '';
+            element.style.border = '';
+            element.style.padding = '';
+        });
+    }
+
+    function generateMessage(template) {
+        let msg = template.replace(/\[ITEMS\]/g, sharePayload.items);
+        msg = msg.replace(/\[NET_AMOUNT\]/g, sharePayload.net);
+        msg = msg.replace(/\[SENDER_NAME\]/g, appSettings.name || 'Practo Enterprise Team');
+        return msg;
+    }
+
+    function shareWhatsApp() {
+        if(!sharePayload.items) return alert("Please configure a proposal first.");
+        const msg = generateMessage(appSettings.waTemp);
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function shareEmail() {
+        if(!sharePayload.items) return alert("Please configure a proposal first.");
+        const subject = encodeURIComponent("Commercial Proposal - Practo Healthcare Solutions");
+        const body = encodeURIComponent(generateMessage(appSettings.emailTemp));
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+</script>
+
+</body>
+</html>

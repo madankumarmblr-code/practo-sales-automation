@@ -9,7 +9,10 @@ import { registerAutopilotRoutes } from './routes/autopilot.js';
 import { registerSettingsRoutes } from './routes/settings.js';
 import { registerIntegrationRoutes } from './routes/integrations.js';
 import { registerExportRoutes } from './routes/export.js';
+import { registerCommercialRoutes } from './routes/commercial.js';
 import { logEvent } from './services/logger.js';
+import { startSheetAutoSync } from './services/sheetSync.js';
+import { reloadLocationsIndex } from './services/locations.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -54,6 +57,7 @@ registerAutopilotRoutes(app);
 registerSettingsRoutes(app);
 registerIntegrationRoutes(app);
 registerExportRoutes(app);
+registerCommercialRoutes(app);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
@@ -68,4 +72,13 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Practo Sales API listening on http://0.0.0.0:${PORT}`);
+  startSheetAutoSync();
+  // Rebuild location index after first sync settles
+  setTimeout(() => {
+    try {
+      reloadLocationsIndex();
+    } catch {
+      /* ignore */
+    }
+  }, 5000);
 });

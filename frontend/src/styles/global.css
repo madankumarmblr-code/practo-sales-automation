@@ -786,3 +786,19 @@ label.field textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.commercial-suite-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 2rem);
+  padding-bottom: 0;
+}
+
+.commercial-suite-frame {
+  flex: 1;
+  width: 100%;
+  min-height: calc(100vh - 7.5rem);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}

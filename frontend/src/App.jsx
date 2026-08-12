@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import LeadGenerator from './pages/LeadGenerator';
+import CommercialSuite from './pages/CommercialSuite';
 import LeadManagement from './pages/LeadManagement';
 import Autopilot from './pages/Autopilot';
 import LeadSettings from './pages/LeadSettings';
@@ -30,6 +31,7 @@ export default function App() {
           <Route element={<Layout toast={toast} />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/lead-generator" element={<LeadGenerator />} />
+            <Route path="/commercial-suite" element={<CommercialSuite />} />
             <Route path="/leads" element={<LeadManagement />} />
             <Route path="/autopilot" element={<Autopilot />} />
             <Route path="/lead-settings" element={<LeadSettings />} />

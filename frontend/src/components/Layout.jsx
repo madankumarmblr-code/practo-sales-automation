@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 const links = [
   { to: '/', label: 'Dashboard', icon: '◈', perm: 'dashboard:read' },
   { to: '/lead-generator', label: 'Lead Generator', icon: '✦', perm: 'lead_generator:read' },
+  { to: '/commercial-suite', label: 'Commercial Suite', icon: '◎', perm: 'commercial_suite:read' },
   { to: '/leads', label: 'Lead Management', icon: '▤', perm: 'leads:read' },
   { to: '/autopilot', label: 'Autopilot AI', icon: '⚡', perm: 'autopilot:read' },
   { to: '/lead-settings', label: 'Lead Settings', icon: '⚙', perm: 'lead_settings:read' },
