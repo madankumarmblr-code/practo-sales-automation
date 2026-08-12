@@ -107,6 +107,7 @@ app.listen(PORT, HOST, () => {
     console.log(`Open http://${HOST}:${PORT} (API + UI)`);
   }
   startSheetAutoSync();
+  // Rebuild location index after first sync settles
   setTimeout(() => {
     try {
       reloadLocationsIndex();

@@ -5,8 +5,9 @@ Full-stack sales automation suite for clinic and healthcare outreach — **ready
 ## Features
 
 - **Super Admin** — users, permissions, system health & logs
+- **Simple login** — user ID / email + password
 - **Lead Generator** — Google Sheet auto-sync (city → zone → speciality)
-- **Commercial Suite** — Prime / Reach / Video proposals
+- **Commercial Suite** — Prime / Reach / Video proposals with live sheet inventory
 - **Autopilot AI** — separate WhatsApp, Gmail, Calls pilots + records & dialogues
 - **API Integrations** — multi-provider connectors with self-test
 
@@ -17,8 +18,8 @@ npm install
 npm run dev
 ```
 
-- Web: http://localhost:5173  
-- API: http://localhost:4000/api/health  
+- Web: http://localhost:5173
+- API: http://localhost:4000/api/health
 
 ## Host (production)
 
@@ -52,6 +53,8 @@ Change this password after go-live and create users in **Super Admin**.
 
 ## Inventory source (Google Sheet)
 
-Auto-syncs every 15 minutes from the published CSV:
+Auto-syncs every 15 minutes from the published CSV (no manual CSV upload):
 
 `https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv`
+
+Cached under `DATA_DIR` (default `backend/data/locations-sheet.csv`). Manual refresh: `POST /api/sheet/sync`.

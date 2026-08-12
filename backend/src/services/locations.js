@@ -5,7 +5,6 @@ import { getCachedCsvPath, syncSheetFromGoogle, getSheetSyncMeta } from "./sheet
 import { getDataDir } from "../config.js";
 
 const LEGACY_CSV = path.join(getDataDir(), "locations.csv");
-
 /** @type {{ byCity: Map<string, Map<string, Set<string>>>, rows: object[], source: string } | null} */
 let cache = null;
 

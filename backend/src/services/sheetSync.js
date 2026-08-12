@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { logEvent } from './logger.js';
 import { getDataDir } from '../config.js';
 
@@ -14,7 +13,6 @@ export const SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQTl9Yrc0MVODAlLUTrHvOCJZxrm7bpEMV3xAX1d3UYiXQIeGySyOe8t1Jk8evBTQg2rSeC8akfGfxr/pub?gid=305008958&single=true&output=csv';
 
 const SYNC_INTERVAL_MS = Number(process.env.SHEET_SYNC_MINUTES || 15) * 60 * 1000;
-
 let syncTimer = null;
 let lastSync = null;
 let lastError = null;
