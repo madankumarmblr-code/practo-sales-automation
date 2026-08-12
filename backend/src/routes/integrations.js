@@ -14,6 +14,8 @@ function parseRow(row) {
   return {
     ...row,
     enabled: !!row.enabled,
+    is_default: !!row.is_default,
+    channel: row.channel || '',
     config: JSON.parse(row.config || '{}'),
     secrets: masked,
     hasSecrets: Object.values(secrets).some(Boolean),
@@ -25,12 +27,11 @@ export function registerIntegrationRoutes(app) {
     '/api/integrations',
     authRequired,
     requirePermission('api_integrations:read', 'settings:read'),
-    (_req, res) => {
-      const rows = db
-        .prepare('SELECT * FROM api_integrations ORDER BY category, label')
-        .all()
-        .map(parseRow);
-      res.json(rows);
+    (req, res) => {
+      const channel = (req.query.channel || '').toString();
+      let rows = db.prepare('SELECT * FROM api_integrations ORDER BY category, is_default DESC, label').all();
+      if (channel) rows = rows.filter((r) => r.channel === channel);
+      res.json(rows.map(parseRow));
     }
   );
 

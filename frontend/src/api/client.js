@@ -106,13 +106,21 @@ export const api = {
     return request(`/api/commercial/inventory${qs ? `?${qs}` : ''}`);
   },
   refreshCommercial: () => request('/api/commercial/refresh', { method: 'POST' }),
-  getCampaigns: () => request('/api/autopilot/campaigns'),
+  getCampaigns: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString();
+    return request(`/api/autopilot/campaigns${qs ? `?${qs}` : ''}`);
+  },
   getAutopilotStats: () => request('/api/autopilot/stats'),
+  getAutopilotPlaybooks: () => request('/api/autopilot/playbooks'),
   createCampaign: (body) =>
     request('/api/autopilot/campaigns', { method: 'POST', body: JSON.stringify(body) }),
   updateCampaign: (id, body) =>
     request(`/api/autopilot/campaigns/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  runCampaign: (id) => request(`/api/autopilot/campaigns/${id}/run`, { method: 'POST' }),
+  deleteCampaign: (id) => request(`/api/autopilot/campaigns/${id}`, { method: 'DELETE' }),
+  runCampaign: (id, body = {}) =>
+    request(`/api/autopilot/campaigns/${id}/run`, { method: 'POST', body: JSON.stringify(body) }),
   getLeadSettings: () => request('/api/lead-settings'),
   updateLeadSettings: (body) =>
     request('/api/lead-settings', { method: 'PUT', body: JSON.stringify(body) }),
@@ -121,7 +129,12 @@ export const api = {
   getSettings: () => request('/api/settings'),
   updateSettings: (body) => request('/api/settings', { method: 'PUT', body: JSON.stringify(body) }),
   getStages: () => request('/api/pipeline/stages'),
-  getIntegrations: () => request('/api/integrations'),
+  getIntegrations: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v != null && v !== ''))
+    ).toString();
+    return request(`/api/integrations${qs ? `?${qs}` : ''}`);
+  },
   updateIntegration: (id, body) =>
     request(`/api/integrations/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   testIntegration: (id) => request(`/api/integrations/${id}/test`, { method: 'POST' }),

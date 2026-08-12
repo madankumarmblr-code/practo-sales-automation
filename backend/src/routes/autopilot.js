@@ -1,48 +1,84 @@
 import { nanoid } from 'nanoid';
 import db from '../db/db.js';
+import { requirePermission } from '../auth/middleware.js';
+import { CHANNELS, channelMeta } from '../services/channels/catalog.js';
+import {
+  listCampaigns,
+  runCampaign,
+  getAutopilotStats,
+  getPlaybooks,
+  resetDailyCountersIfNeeded,
+} from '../services/autopilotEngine.js';
 
 const now = () => new Date().toISOString();
 
+function parseCampaign(row) {
+  if (!row) return row;
+  let channel_config = {};
+  try {
+    channel_config = JSON.parse(row.channel_config || '{}');
+  } catch {
+    channel_config = {};
+  }
+  return { ...row, channel_config, ai_personalize: !!row.ai_personalize };
+}
+
 export function registerAutopilotRoutes(app) {
-  app.get('/api/autopilot/campaigns', (_req, res) => {
-    const rows = db
-      .prepare('SELECT * FROM autopilot_campaigns ORDER BY updated_at DESC')
-      .all();
-    res.json(rows);
+  app.get('/api/autopilot/playbooks', requirePermission('autopilot:read'), (_req, res) => {
+    res.json({ channels: getPlaybooks(), catalog: CHANNELS });
   });
 
-  app.post('/api/autopilot/campaigns', (req, res) => {
+  app.get('/api/autopilot/campaigns', requirePermission('autopilot:read'), (req, res) => {
+    resetDailyCountersIfNeeded();
+    const channel = (req.query.channel || '').toString();
+    res.json(listCampaigns(channel ? { channel } : {}));
+  });
+
+  app.post('/api/autopilot/campaigns', requirePermission('autopilot:write'), (req, res) => {
     const body = req.body || {};
     if (!body.name || !body.channel) {
       return res.status(400).json({ error: 'name and channel are required' });
     }
+    if (!CHANNELS[body.channel]) {
+      return res.status(400).json({ error: 'channel must be whatsapp, gmail, or calls' });
+    }
+    const meta = channelMeta(body.channel);
     const id = nanoid();
     const ts = now();
     db.prepare(`
       INSERT INTO autopilot_campaigns (
-        id, name, channel, status, goal, message_template, daily_limit, sent_today, success_rate, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+        id, name, channel, status, goal, message_template, daily_limit, sent_today, success_rate,
+        integration_id, subject, channel_config, ai_personalize, run_mode, last_run_day,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, NULL, ?, ?)
     `).run(
       id,
       body.name,
       body.channel,
       body.status || 'paused',
-      body.goal || '',
-      body.message_template || '',
-      body.daily_limit ?? 50,
+      body.goal || meta.defaultGoal,
+      body.message_template || meta.defaultTemplate,
+      body.daily_limit ?? meta.defaultDailyLimit,
+      body.integration_id || null,
+      body.subject || meta.defaultSubject,
+      JSON.stringify(body.channel_config || {}),
+      body.ai_personalize ? 1 : 0,
+      body.run_mode || 'live',
       ts,
       ts
     );
-    res.status(201).json(db.prepare('SELECT * FROM autopilot_campaigns WHERE id = ?').get(id));
+    res.status(201).json(parseCampaign(db.prepare('SELECT * FROM autopilot_campaigns WHERE id = ?').get(id)));
   });
 
-  app.put('/api/autopilot/campaigns/:id', (req, res) => {
+  app.put('/api/autopilot/campaigns/:id', requirePermission('autopilot:write'), (req, res) => {
     const existing = db.prepare('SELECT * FROM autopilot_campaigns WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Campaign not found' });
     const b = req.body || {};
     db.prepare(`
       UPDATE autopilot_campaigns SET
-        name=?, channel=?, status=?, goal=?, message_template=?, daily_limit=?, sent_today=?, success_rate=?, updated_at=?
+        name=?, channel=?, status=?, goal=?, message_template=?, daily_limit=?,
+        sent_today=?, success_rate=?, integration_id=?, subject=?, channel_config=?,
+        ai_personalize=?, run_mode=?, updated_at=?
       WHERE id=?
     `).run(
       b.name ?? existing.name,
@@ -53,87 +89,35 @@ export function registerAutopilotRoutes(app) {
       b.daily_limit ?? existing.daily_limit,
       b.sent_today ?? existing.sent_today,
       b.success_rate ?? existing.success_rate,
+      b.integration_id !== undefined ? b.integration_id : existing.integration_id,
+      b.subject ?? existing.subject,
+      b.channel_config ? JSON.stringify(b.channel_config) : existing.channel_config || '{}',
+      b.ai_personalize !== undefined ? (b.ai_personalize ? 1 : 0) : existing.ai_personalize || 0,
+      b.run_mode ?? existing.run_mode ?? 'live',
       now(),
       req.params.id
     );
-    res.json(db.prepare('SELECT * FROM autopilot_campaigns WHERE id = ?').get(req.params.id));
+    res.json(parseCampaign(db.prepare('SELECT * FROM autopilot_campaigns WHERE id = ?').get(req.params.id)));
   });
 
-  app.post('/api/autopilot/campaigns/:id/run', (req, res) => {
-    const campaign = db.prepare('SELECT * FROM autopilot_campaigns WHERE id = ?').get(req.params.id);
-    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
-
-    const openLeads = db
-      .prepare("SELECT * FROM leads WHERE status = 'open' ORDER BY score DESC LIMIT 5")
-      .all();
-
-    const channelLabel =
-      campaign.channel === 'whatsapp'
-        ? 'WhatsApp'
-        : campaign.channel === 'gmail'
-          ? 'Gmail'
-          : 'Call';
-
-    const insertActivity = db.prepare(`
-      INSERT INTO activities (id, lead_id, contact_id, type, channel, title, detail, status, created_at)
-      VALUES (?, ?, NULL, ?, ?, ?, ?, 'completed', ?)
-    `);
-    const updateLead = db.prepare(`
-      UPDATE leads SET last_contacted_at=?, next_action=?, updated_at=?, stage=CASE WHEN stage='new' THEN 'contacted' ELSE stage END
-      WHERE id=?
-    `);
-
-    const actions = [];
-    const ts = now();
-    const tx = db.transaction(() => {
-      for (const lead of openLeads) {
-        const personalized = (campaign.message_template || '')
-          .replaceAll('{{name}}', lead.name.split(' ')[0])
-          .replaceAll('{{company}}', lead.company || 'your clinic');
-        insertActivity.run(
-          nanoid(),
-          lead.id,
-          campaign.channel === 'calls' ? 'call' : campaign.channel === 'whatsapp' ? 'whatsapp' : 'email',
-          campaign.channel,
-          `Autopilot ${channelLabel}: ${campaign.name}`,
-          personalized.slice(0, 280) || `AI ${channelLabel} outreach executed`,
-          ts
-        );
-        updateLead.run(ts, `Await ${channelLabel} reply`, ts, lead.id);
-        actions.push({ leadId: lead.id, leadName: lead.name, channel: campaign.channel });
-      }
-      db.prepare(`
-        UPDATE autopilot_campaigns
-        SET sent_today = sent_today + ?, status = 'active', updated_at = ?
-        WHERE id = ?
-      `).run(actions.length, ts, campaign.id);
-    });
-    tx();
-
-    res.json({
-      campaignId: campaign.id,
-      executed: actions.length,
-      actions,
-      message: `Autopilot ran ${actions.length} ${channelLabel} outreaches`,
-    });
+  app.delete('/api/autopilot/campaigns/:id', requirePermission('autopilot:write'), (req, res) => {
+    const info = db.prepare('DELETE FROM autopilot_campaigns WHERE id = ?').run(req.params.id);
+    if (!info.changes) return res.status(404).json({ error: 'Campaign not found' });
+    res.json({ ok: true });
   });
 
-  app.get('/api/autopilot/stats', (_req, res) => {
-    const campaigns = db.prepare('SELECT * FROM autopilot_campaigns').all();
-    const byChannel = { whatsapp: 0, gmail: 0, calls: 0 };
-    let sentToday = 0;
-    let active = 0;
-    for (const c of campaigns) {
-      byChannel[c.channel] = (byChannel[c.channel] || 0) + c.sent_today;
-      sentToday += c.sent_today;
-      if (c.status === 'active') active += 1;
+  app.post('/api/autopilot/campaigns/:id/run', requirePermission('autopilot:write'), (req, res) => {
+    try {
+      const mode = req.body?.mode;
+      const limit = req.body?.limit;
+      const result = runCampaign(req.params.id, { mode, limit });
+      res.json(result);
+    } catch (err) {
+      res.status(err.status || 500).json({ error: err.message || 'Run failed' });
     }
-    const recent = db
-      .prepare(
-        `SELECT * FROM activities WHERE channel IN ('whatsapp','gmail','calls')
-         ORDER BY created_at DESC LIMIT 12`
-      )
-      .all();
-    res.json({ sentToday, activeCampaigns: active, byChannel, recent, campaigns: campaigns.length });
+  });
+
+  app.get('/api/autopilot/stats', requirePermission('autopilot:read'), (_req, res) => {
+    res.json(getAutopilotStats());
   });
 }

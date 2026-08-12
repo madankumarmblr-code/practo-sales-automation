@@ -563,6 +563,10 @@
         
         // Always auto-sync from backend-cached Google Sheet (no CSV upload)
         fetchSheetData(appSettings.sheetUrl);
+        // Retry once shortly after load in case auth token was still settling
+        setTimeout(function() {
+            if (!sheetData.length) fetchSheetData(appSettings.sheetUrl, false, true);
+        }, 1500);
         setInterval(function() { fetchSheetData(appSettings.sheetUrl, true); }, 15 * 60 * 1000);
     };
 

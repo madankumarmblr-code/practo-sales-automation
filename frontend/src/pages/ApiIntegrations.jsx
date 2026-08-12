@@ -102,8 +102,9 @@ export default function ApiIntegrations() {
         <div>
           <h1>API Integrations</h1>
           <p>
-            Advanced, ready-to-use connectors for Practo, WhatsApp, Gmail, Calls, Maps, and AI.
-            Add credentials when you go live — configs export without secrets.
+            Ready connectors for WhatsApp (Meta / Gupshup / Exotel), Gmail (OAuth / SendGrid / SES),
+            Calls (Twilio / Exotel / Knowlarity), AI, Discovery, and webhooks. Add credentials to go
+            live — configs export without secrets.
           </p>
         </div>
         <div className="topbar-actions">
@@ -124,6 +125,7 @@ export default function ApiIntegrations() {
               <thead>
                 <tr>
                   <th>Integration</th>
+                  <th>Channel</th>
                   <th>Status</th>
                   <th>Enabled</th>
                   <th>Last tested</th>
@@ -136,8 +138,12 @@ export default function ApiIntegrations() {
                     <td>
                       <strong>{item.label}</strong>
                       <div className="muted" style={{ fontSize: '0.82rem' }}>
-                        {item.provider} · {item.notes}
+                        {item.provider}
+                        {item.is_default ? ' · default' : ''} · {item.notes}
                       </div>
+                    </td>
+                    <td>
+                      <span className="badge badge-gray">{item.channel || '—'}</span>
                     </td>
                     <td>
                       <span

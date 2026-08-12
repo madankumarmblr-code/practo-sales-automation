@@ -159,4 +159,27 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL AND username != ''
 `);
 
+const campaignCols = db.prepare('PRAGMA table_info(autopilot_campaigns)').all().map((c) => c.name);
+const campaignAlters = [
+  ['integration_id', 'TEXT'],
+  ['subject', "TEXT DEFAULT ''"],
+  ['channel_config', "TEXT DEFAULT '{}'"],
+  ['ai_personalize', 'INTEGER DEFAULT 0'],
+  ['run_mode', "TEXT DEFAULT 'live'"],
+  ['last_run_day', 'TEXT'],
+];
+for (const [col, type] of campaignAlters) {
+  if (!campaignCols.includes(col)) {
+    db.exec(`ALTER TABLE autopilot_campaigns ADD COLUMN ${col} ${type}`);
+  }
+}
+
+const integCols = db.prepare('PRAGMA table_info(api_integrations)').all().map((c) => c.name);
+if (!integCols.includes('channel')) {
+  db.exec(`ALTER TABLE api_integrations ADD COLUMN channel TEXT DEFAULT ''`);
+}
+if (!integCols.includes('is_default')) {
+  db.exec(`ALTER TABLE api_integrations ADD COLUMN is_default INTEGER DEFAULT 0`);
+}
+
 export default db;
