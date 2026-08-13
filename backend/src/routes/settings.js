@@ -1,5 +1,6 @@
 import db from '../db/db.js';
 import { nanoid } from 'nanoid';
+import { persistDurableDbNow } from '../services/dbSnapshot.js';
 
 function parseMap(rows) {
   const out = {};
@@ -11,6 +12,11 @@ function parseMap(rows) {
     }
   }
   return out;
+}
+
+async function respondAfterPersist(res, payload) {
+  await persistDurableDbNow();
+  res.json(payload);
 }
 
 export function registerSettingsRoutes(app) {
@@ -94,7 +100,7 @@ export function registerSettingsRoutes(app) {
     res.json({ settings, sources, stages });
   });
 
-  app.put('/api/lead-settings', (req, res) => {
+  app.put('/api/lead-settings', async (req, res) => {
     const body = req.body || {};
     const upsert = db.prepare('INSERT OR REPLACE INTO lead_settings (key, value) VALUES (?, ?)');
     const tx = db.transaction((payload) => {
@@ -103,10 +109,10 @@ export function registerSettingsRoutes(app) {
       }
     });
     tx(body);
-    res.json(parseMap(db.prepare('SELECT * FROM lead_settings').all()));
+    await respondAfterPersist(res, parseMap(db.prepare('SELECT * FROM lead_settings').all()));
   });
 
-  app.put('/api/lead-settings/sources/:id', (req, res) => {
+  app.put('/api/lead-settings/sources/:id', async (req, res) => {
     const existing = db.prepare('SELECT * FROM lead_sources WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Source not found' });
     const b = req.body || {};
@@ -116,14 +122,17 @@ export function registerSettingsRoutes(app) {
       b.weight ?? existing.weight,
       req.params.id
     );
-    res.json(db.prepare('SELECT * FROM lead_sources WHERE id = ?').get(req.params.id));
+    await respondAfterPersist(
+      res,
+      db.prepare('SELECT * FROM lead_sources WHERE id = ?').get(req.params.id)
+    );
   });
 
   app.get('/api/settings', (_req, res) => {
     res.json(parseMap(db.prepare('SELECT * FROM app_settings').all()));
   });
 
-  app.put('/api/settings', (req, res) => {
+  app.put('/api/settings', async (req, res) => {
     const body = req.body || {};
     const upsert = db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)');
     const tx = db.transaction((payload) => {
@@ -132,7 +141,7 @@ export function registerSettingsRoutes(app) {
       }
     });
     tx(body);
-    res.json(parseMap(db.prepare('SELECT * FROM app_settings').all()));
+    await respondAfterPersist(res, parseMap(db.prepare('SELECT * FROM app_settings').all()));
   });
 
   app.get('/api/pipeline/stages', (_req, res) => {

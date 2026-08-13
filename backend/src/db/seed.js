@@ -294,7 +294,13 @@ export function bootstrap() {
   const appCount = db.prepare('SELECT COUNT(*) as c FROM app_settings').get().c;
   if (appCount === 0) {
     const appSettings = {
-      profile: { company: 'Practo Enterprise', timezone: 'Asia/Kolkata' },
+      profile: {
+        orgName: 'Practo Enterprise',
+        company: 'Practo Enterprise',
+        workspace: 'Enterprise Sales',
+        timezone: 'Asia/Kolkata',
+        currency: 'INR',
+      },
       ai: {
         model: 'gpt-sales-assist',
         tone: 'consultative',

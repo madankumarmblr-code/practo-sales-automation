@@ -5,6 +5,7 @@ import { selfTestIntegration } from '../services/outreach.js';
 import { verifyIntegration } from '../services/integrationVerify.js';
 import { dialoguesFor, PRODUCTS } from '../services/channels/dialogues.js';
 import { catalogByProvider, INTEGRATION_CATALOG } from '../services/channels/catalog.js';
+import { persistDurableDbNow } from '../services/dbSnapshot.js';
 
 const now = () => new Date().toISOString();
 
@@ -166,7 +167,7 @@ export function registerIntegrationRoutes(app) {
     '/api/integrations/:id',
     authRequired,
     requirePermission('api_integrations:write'),
-    (req, res) => {
+    async (req, res) => {
       const existing = db.prepare('SELECT * FROM api_integrations WHERE id = ?').get(req.params.id);
       if (!existing) return res.status(404).json({ error: 'Integration not found' });
       const b = req.body || {};
@@ -210,6 +211,7 @@ export function registerIntegrationRoutes(app) {
         now(),
         req.params.id
       );
+      await persistDurableDbNow();
       res.json(parseRow(db.prepare('SELECT * FROM api_integrations WHERE id = ?').get(req.params.id)));
     }
   );
@@ -339,7 +341,7 @@ export function registerIntegrationRoutes(app) {
     '/api/integrations',
     authRequired,
     requirePermission('api_integrations:write'),
-    (req, res) => {
+    async (req, res) => {
       const b = req.body || {};
       if (!b.provider || !b.label) {
         return res.status(400).json({ error: 'provider and label required' });
@@ -361,6 +363,7 @@ export function registerIntegrationRoutes(app) {
         b.notes || '',
         ts
       );
+      await persistDurableDbNow();
       res.status(201).json(parseRow(db.prepare('SELECT * FROM api_integrations WHERE id = ?').get(id)));
     }
   );

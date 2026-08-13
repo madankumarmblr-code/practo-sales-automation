@@ -107,9 +107,10 @@ Create real users under **Super Admin** and rotate this password in production.
 1. `npm run build` succeeds (or `docker compose build`)
 2. `/api/health` returns `{ ok: true }`
 3. Persist `DATA_DIR` / Docker volume so the DB survives restarts
-4. Point DNS + HTTPS at the host
-5. Add live WhatsApp / Gmail / Calls API credentials under **API Integrations**
-6. Confirm Google Sheet still publishes as CSV
+4. On **Vercel**, also set `BLOB_READ_WRITE_TOKEN` so Settings / API Integrations survive cold starts (`durableStore: true` on `/api/health`)
+5. Point DNS + HTTPS at the host
+6. Add live WhatsApp / Gmail / Calls API credentials under **API Integrations**
+7. Confirm Google Sheet still publishes as CSV
 
 ## Architecture (hosted)
 

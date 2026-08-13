@@ -286,6 +286,7 @@ export default function ApiIntegrations() {
   const [testingId, setTestingId] = useState(null);
   const [filter, setFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
+  const [durableStore, setDurableStore] = useState(null);
 
   async function load() {
     try {
@@ -297,6 +298,10 @@ export default function ApiIntegrations() {
 
   useEffect(() => {
     load();
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((h) => setDurableStore(Boolean(h.durableStore)))
+      .catch(() => setDurableStore(null));
   }, []);
 
   const counts = useMemo(() => {
@@ -428,6 +433,16 @@ export default function ApiIntegrations() {
           </button>
         </div>
       </div>
+
+      {durableStore === false ? (
+        <div className="panel" style={{ marginBottom: '1rem', borderColor: 'var(--amber, #d4a017)' }}>
+          <strong>API keys will not stick across restarts.</strong>{' '}
+          <span className="muted">
+            This host uses ephemeral storage. Add a Vercel Blob store and set{' '}
+            <code>BLOB_READ_WRITE_TOKEN</code> so Save &amp; verify persists. See VERCEL.md.
+          </span>
+        </div>
+      ) : null}
 
       <div className="panel" style={{ marginBottom: '1rem' }}>
         <div className="connectivity-summary">

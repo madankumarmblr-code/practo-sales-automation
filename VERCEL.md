@@ -48,6 +48,15 @@ Or import the GitHub repo at [vercel.com/new](https://vercel.com/new) and set Pr
 
 ## Notes
 
-- SQLite lives in `/tmp` on Vercel (ephemeral). Use Docker/VPS for durable CRM data.
-- First API request after a cold start can be slower (seed + sheet sync).
+- SQLite on Vercel still boots from `/tmp` (ephemeral per instance).
+- **Required for Settings / API Integrations to stick:** create a [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) store on the project and set:
+
+  | Name | Value |
+  |------|--------|
+  | `BLOB_READ_WRITE_TOKEN` | from the Blob store (also auto-injected when you link Blob in the project) |
+
+  After deploy, `/api/health` should show `"durableStore": true`. Saves then snapshot the DB to Blob and restore it on cold starts.
+- You can still set `OPENAI_API_KEY` / `GOOGLE_MAPS_API_KEY` / etc. (see `.env.example`) as a backup hydration path.
+- First API request after a cold start can be slower (restore + seed + sheet sync).
 - Custom domain `salesmaster.live` / `www.salesmaster.live` is on project `practo-sales-automation-1`.
+- For fully durable CRM without Blob, host with Docker/VPS (`DATA_DIR` volume) — see HOSTING.md.

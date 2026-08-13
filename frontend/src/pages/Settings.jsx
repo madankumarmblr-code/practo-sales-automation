@@ -8,19 +8,28 @@ export default function Settings() {
   const toast = useToast();
   const { can, user } = useAuth();
   const [settings, setSettings] = useState(null);
+  const [durableStore, setDurableStore] = useState(null);
 
   useEffect(() => {
     api
       .getSettings()
       .then(setSettings)
       .catch((e) => toast(e.message));
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((h) => setDurableStore(Boolean(h.durableStore)))
+      .catch(() => setDurableStore(null));
   }, []);
 
   async function save() {
     try {
       const updated = await api.updateSettings(settings);
       setSettings(updated);
-      toast('Settings saved');
+      toast(
+        durableStore === false
+          ? 'Saved on this server — add BLOB_READ_WRITE_TOKEN so it survives restarts'
+          : 'Settings saved'
+      );
     } catch (e) {
       toast(e.message);
     }
@@ -69,6 +78,16 @@ export default function Settings() {
         </div>
       </div>
 
+      {durableStore === false ? (
+        <div className="panel" style={{ marginBottom: '1rem', borderColor: 'var(--amber, #d4a017)' }}>
+          <strong>Durable storage not configured.</strong>{' '}
+          <span className="muted">
+            On Vercel, saves reset between cold starts until you add a Blob store and set{' '}
+            <code>BLOB_READ_WRITE_TOKEN</code>. See VERCEL.md.
+          </span>
+        </div>
+      ) : null}
+
       <div className="grid grid-2">
         <div className="panel">
           <h2>Workspace profile</h2>
@@ -76,7 +95,7 @@ export default function Settings() {
             <label className="field">
               Organization
               <input
-                value={profile.orgName || ''}
+                value={profile.orgName || profile.company || ''}
                 onChange={(e) => patch('profile', 'orgName', e.target.value)}
                 disabled={!can('settings:write')}
               />
