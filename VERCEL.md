@@ -49,13 +49,15 @@ Or import the GitHub repo at [vercel.com/new](https://vercel.com/new) and set Pr
 ## Notes
 
 - SQLite on Vercel still boots from `/tmp` (ephemeral per instance).
-- **Required for Settings / API Integrations to stick:** create a [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) store on the project and set:
+- **Settings / API Integrations stick in two ways:**
+  1. **Browser backup (always):** saves are kept in localStorage and re-applied on login after a cold start (works without extra config).
+  2. **Vercel Blob (recommended for multi-device):** create a [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) store and set:
 
   | Name | Value |
   |------|--------|
   | `BLOB_READ_WRITE_TOKEN` | from the Blob store (also auto-injected when you link Blob in the project) |
 
-  After deploy, `/api/health` should show `"durableStore": true`. Saves then snapshot the DB to Blob and restore it on cold starts.
+  After deploy, `/api/health` should show `"durableStore": true`.
 - You can still set `OPENAI_API_KEY` / `GOOGLE_MAPS_API_KEY` / etc. (see `.env.example`) as a backup hydration path.
 - First API request after a cold start can be slower (restore + seed + sheet sync).
 - Custom domain `salesmaster.live` / `www.salesmaster.live` is on project `practo-sales-automation-1`.
