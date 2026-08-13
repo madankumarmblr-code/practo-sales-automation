@@ -178,6 +178,26 @@ export async function restoreDurableDb() {
     clearLocalDbFiles(dbPath);
     fs.writeFileSync(dbPath, buf);
     const rev = await readRemoteRev(blob, token);
+    // Stamp the restored file with the remote revision so warm logic compares fairly
+    if (rev > 0) {
+      try {
+        const Database = (await import('better-sqlite3')).default;
+        const stamp = new Database(dbPath);
+        try {
+          stamp.exec(`
+            CREATE TABLE IF NOT EXISTS app_settings (
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL
+            )
+          `);
+          writeLocalRev(stamp, rev);
+        } finally {
+          stamp.close();
+        }
+      } catch (err) {
+        console.warn('Could not stamp durable rev on restore:', err.message || err);
+      }
+    }
     console.log(
       `Restored durable SQLite snapshot (${buf.length} bytes) from ${pathname} (rev ${rev})`
     );
