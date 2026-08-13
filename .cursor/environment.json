@@ -1,0 +1,21 @@
+{
+  "name": "Practo Sales Automation",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev",
+      "description": "Express API on port 4000 and Vite frontend on port 5173 (API proxied at /api)"
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 5173
+    },
+    {
+      "name": "api",
+      "port": 4000
+    }
+  ]
+}
