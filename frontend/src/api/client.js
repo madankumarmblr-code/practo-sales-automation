@@ -198,6 +198,8 @@ export const api = {
     request(`/api/lead-settings/sources/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   getSettings: () => request('/api/settings'),
   updateSettings: (body) => request('/api/settings', { method: 'PUT', body: JSON.stringify(body) }),
+  rehydrateWorkspace: (body) =>
+    request('/api/workspace/rehydrate', { method: 'POST', body: JSON.stringify(body) }),
   getStages: () => request('/api/pipeline/stages'),
   getIntegrations: (params = {}) => {
     const qs = new URLSearchParams(

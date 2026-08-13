@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
+import { backupLeadSettings } from '../lib/workspaceBackup';
 
 export default function LeadSettings() {
   const toast = useToast();
@@ -49,12 +50,14 @@ export default function LeadSettings() {
 
   async function save() {
     try {
-      await api.updateLeadSettings({
+      const payload = {
         scoring_rules: scoring,
         auto_assign: autoAssign,
         enrichment,
         notifications,
-      });
+      };
+      await api.updateLeadSettings(payload);
+      backupLeadSettings(payload);
       toast('Lead settings saved');
       load();
     } catch (e) {

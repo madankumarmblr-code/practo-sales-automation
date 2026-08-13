@@ -14,6 +14,7 @@ import { registerIntegrationRoutes } from './routes/integrations.js';
 import { registerExportRoutes } from './routes/export.js';
 import { registerImportRoutes } from './routes/import.js';
 import { registerCommercialRoutes } from './routes/commercial.js';
+import { registerWorkspaceRoutes } from './routes/workspace.js';
 import { logEvent } from './services/logger.js';
 import { syncSheetFromGoogle } from './services/sheetSync.js';
 import { reloadLocationsIndex } from './services/locations.js';
@@ -106,7 +107,9 @@ export function createApp(options = {}) {
   registerAutopilotRoutes(app);
   registerSettingsRoutes(app);
   registerIntegrationRoutes(app);
+  registerWorkspaceRoutes(app);
   registerExportRoutes(app);
+  registerImportRoutes(app);
   registerCommercialRoutes(app);
 
   if (serveStatic) {

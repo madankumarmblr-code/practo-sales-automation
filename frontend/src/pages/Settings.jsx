@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, downloadExport } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import { backupAppSettings } from '../lib/workspaceBackup';
 
 export default function Settings() {
   const toast = useToast();
@@ -25,9 +26,10 @@ export default function Settings() {
     try {
       const updated = await api.updateSettings(settings);
       setSettings(updated);
+      backupAppSettings(updated);
       toast(
         durableStore === false
-          ? 'Saved on this server — add BLOB_READ_WRITE_TOKEN so it survives restarts'
+          ? 'Settings saved (kept in this browser + server)'
           : 'Settings saved'
       );
     } catch (e) {
@@ -80,10 +82,10 @@ export default function Settings() {
 
       {durableStore === false ? (
         <div className="panel" style={{ marginBottom: '1rem', borderColor: 'var(--amber, #d4a017)' }}>
-          <strong>Durable storage not configured.</strong>{' '}
+          <strong>Ephemeral server storage.</strong>{' '}
           <span className="muted">
-            On Vercel, saves reset between cold starts until you add a Blob store and set{' '}
-            <code>BLOB_READ_WRITE_TOKEN</code>. See VERCEL.md.
+            Saves are kept in this browser and re-applied after server restarts. For multi-device
+            durability, add a Vercel Blob store (<code>BLOB_READ_WRITE_TOKEN</code>).
           </span>
         </div>
       ) : null}

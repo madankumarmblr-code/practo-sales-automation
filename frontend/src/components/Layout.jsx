@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { api } from '../api/client';
+import { readWorkspaceBackup } from '../lib/workspaceBackup';
 
 const links = [
   { to: '/', label: 'Dashboard', icon: '◈', perm: 'dashboard:read' },
@@ -16,14 +18,46 @@ const links = [
 
 export default function Layout({ toast }) {
   const [open, setOpen] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
   const location = useLocation();
   const { user, can, logout, loading, isAuthenticated } = useAuth();
+  const rehydrated = useRef(false);
 
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
-  if (loading) {
+  // Re-apply browser-backed Settings / API keys after Vercel /tmp resets
+  // before child pages fetch, so saves appear to stick.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      rehydrated.current = false;
+      setBootstrapped(false);
+      return;
+    }
+    if (rehydrated.current) {
+      setBootstrapped(true);
+      return;
+    }
+    rehydrated.current = true;
+    let cancelled = false;
+    (async () => {
+      const backup = readWorkspaceBackup();
+      if (backup) {
+        try {
+          await api.rehydrateWorkspace(backup);
+        } catch {
+          /* non-fatal */
+        }
+      }
+      if (!cancelled) setBootstrapped(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  if (loading || (isAuthenticated && !bootstrapped)) {
     return <div className="login-page"><div className="muted">Loading workspace…</div></div>;
   }
 
