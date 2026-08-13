@@ -214,10 +214,127 @@ async function consistentBackupBuffer() {
   }
 }
 
+async function downloadRemoteSnapshotBuffer(blob, token) {
+  try {
+    const meta = await blob.head(SNAPSHOT_PATHNAME, { token });
+    const res = await fetch(meta.url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * When this warm instance is behind Blob, pull remote users (and integration
+ * secrets) into the local DB before uploading so we don't drop data that only
+ * exists remotely — and so local creates still land in the durable snapshot.
+ */
+async function mergeRemoteIntoLocal(db, blob, token) {
+  const buf = await downloadRemoteSnapshotBuffer(blob, token);
+  if (!buf?.length) return { mergedUsers: 0, mergedIntegrations: 0 };
+
+  const Database = (await import('better-sqlite3')).default;
+  const tmpPath = path.join(
+    os.tmpdir(),
+    `practo-sales-remote-${process.pid}-${Date.now()}.db`
+  );
+  fs.writeFileSync(tmpPath, buf);
+  let remote;
+  try {
+    remote = new Database(tmpPath, { readonly: true, fileMustExist: true });
+  } catch (err) {
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      /* ignore */
+    }
+    throw err;
+  }
+
+  let mergedUsers = 0;
+  let mergedIntegrations = 0;
+  try {
+    const byEmail = db.prepare('SELECT id FROM users WHERE lower(email) = ?');
+    const byUsername = db.prepare('SELECT id FROM users WHERE lower(username) = ?');
+    const insertUser = db.prepare(`
+      INSERT INTO users (id, name, email, username, password_hash, role, permissions, active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const row of remote.prepare('SELECT * FROM users').all()) {
+      if (!row?.email) continue;
+      const email = String(row.email).toLowerCase();
+      const username = String(row.username || '').toLowerCase();
+      if (byEmail.get(email) || (username && byUsername.get(username))) continue;
+      insertUser.run(
+        row.id,
+        row.name,
+        email,
+        row.username || null,
+        row.password_hash,
+        row.role,
+        row.permissions || '[]',
+        row.active ? 1 : 0,
+        row.created_at,
+        row.updated_at
+      );
+      mergedUsers += 1;
+    }
+
+    const localInteg = db.prepare('SELECT id, secrets FROM api_integrations WHERE provider = ?');
+    const updateSecrets = db.prepare(
+      'UPDATE api_integrations SET secrets = ?, enabled = CASE WHEN ? = 1 THEN 1 ELSE enabled END, status = ?, updated_at = ? WHERE id = ?'
+    );
+    for (const row of remote.prepare('SELECT * FROM api_integrations').all()) {
+      const local = localInteg.get(row.provider);
+      if (!local) continue;
+      let localSecrets = {};
+      let remoteSecrets = {};
+      try {
+        localSecrets = JSON.parse(local.secrets || '{}');
+      } catch {
+        localSecrets = {};
+      }
+      try {
+        remoteSecrets = JSON.parse(row.secrets || '{}');
+      } catch {
+        remoteSecrets = {};
+      }
+      const localHas = Object.values(localSecrets).some(Boolean);
+      const remoteHas = Object.values(remoteSecrets).some(Boolean);
+      if (localHas || !remoteHas) continue;
+      updateSecrets.run(
+        JSON.stringify(remoteSecrets),
+        row.enabled ? 1 : 0,
+        row.status || 'ready',
+        row.updated_at || new Date().toISOString(),
+        local.id
+      );
+      mergedIntegrations += 1;
+    }
+  } finally {
+    try {
+      remote.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return { mergedUsers, mergedIntegrations };
+}
+
 /**
  * Upload the current sales.db to Vercel Blob. Serialized so concurrent
  * mutations on THIS instance cannot race two uploads. Stale instances
- * (lower revision than Blob) skip upload to avoid clobbering newer data.
+ * merge remote users/secrets (on force) then upload, or skip (middleware).
  */
 export function persistDurableDb({ force = false } = {}) {
   if (!durableStoreConfigured()) {
@@ -236,18 +353,38 @@ export function persistDurableDb({ force = false } = {}) {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
       const { default: db } = await import('../db/db.js');
       let localRev = readLocalRev(db);
-      const remoteRev = await readRemoteRev(blob, token);
+      let remoteRev = await readRemoteRev(blob, token);
+      let merged = { mergedUsers: 0, mergedIntegrations: 0 };
 
       if (remoteRev > localRev) {
-        console.warn(
-          `Skipping durable persist — local rev ${localRev} behind remote ${remoteRev}`
-        );
-        return {
-          persisted: false,
-          reason: 'stale_instance',
-          localRev,
-          remoteRev,
-        };
+        if (!force) {
+          console.warn(
+            `Skipping durable persist — local rev ${localRev} behind remote ${remoteRev}`
+          );
+          return {
+            persisted: false,
+            reason: 'stale_instance',
+            localRev,
+            remoteRev,
+          };
+        }
+        try {
+          merged = await mergeRemoteIntoLocal(db, blob, token);
+          console.log(
+            `Merged remote snapshot into local (users=${merged.mergedUsers}, integrations=${merged.mergedIntegrations}) before forced persist`
+          );
+        } catch (err) {
+          console.warn('Remote merge before persist failed:', err.message || err);
+          return {
+            persisted: false,
+            reason: 'merge_failed',
+            error: err.message || String(err),
+            localRev,
+            remoteRev,
+          };
+        }
+        localRev = remoteRev;
+        writeLocalRev(db, localRev);
       }
 
       // Ensure the snapshot we upload carries a rev >= remote
@@ -264,12 +401,54 @@ export function persistDurableDb({ force = false } = {}) {
       // Re-check just before upload to reduce clobber races
       const remoteRev2 = await readRemoteRev(blob, token);
       if (remoteRev2 > localRev) {
-        return {
-          persisted: false,
-          reason: 'stale_instance',
-          localRev,
-          remoteRev: remoteRev2,
-        };
+        if (!force) {
+          return {
+            persisted: false,
+            reason: 'stale_instance',
+            localRev,
+            remoteRev: remoteRev2,
+          };
+        }
+        // Another writer won — merge once more then bump past them
+        try {
+          merged = await mergeRemoteIntoLocal(db, blob, token);
+          localRev = remoteRev2 + 1;
+          writeLocalRev(db, localRev);
+          const again = await consistentBackupBuffer();
+          if (!again.buf.length) {
+            return { persisted: false, reason: 'empty_db' };
+          }
+          const result = await blob.put(SNAPSHOT_PATHNAME, again.buf, {
+            access: 'private',
+            addRandomSuffix: false,
+            allowOverwrite: true,
+            contentType: 'application/x-sqlite3',
+            token,
+          });
+          await blob.put(REV_PATHNAME, String(localRev), {
+            access: 'private',
+            addRandomSuffix: false,
+            allowOverwrite: true,
+            contentType: 'text/plain',
+            token,
+          });
+          return {
+            persisted: true,
+            bytes: again.buf.length,
+            url: result.url,
+            pathname: result.pathname,
+            rev: localRev,
+            ...merged,
+          };
+        } catch (err) {
+          return {
+            persisted: false,
+            reason: 'stale_instance',
+            localRev,
+            remoteRev: remoteRev2,
+            error: err.message || String(err),
+          };
+        }
       }
 
       const result = await blob.put(SNAPSHOT_PATHNAME, buf, {
@@ -299,6 +478,7 @@ export function persistDurableDb({ force = false } = {}) {
         url: result.url,
         pathname: result.pathname,
         rev: localRev,
+        ...merged,
       };
     })
     .catch((err) => {
