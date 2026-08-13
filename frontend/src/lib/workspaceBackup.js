@@ -50,18 +50,27 @@ export function backupLeadSettings(leadSettings) {
 /** Store one integration by provider (IDs change after /tmp resets). */
 export function backupIntegration(provider, payload) {
   if (!provider || !payload) return;
-  const secrets = {};
+  const current = readWorkspaceBackup();
+  const prev = current?.integrations?.[provider] || {};
+
+  // Merge secrets — blank fields mean "unchanged", not "clear backup"
+  const secrets = { ...(prev.secrets || {}) };
   for (const [k, v] of Object.entries(payload.secrets || {})) {
     if (String(v || '').trim() && v !== '••••••••') secrets[k] = String(v).trim();
   }
+
   writeWorkspaceBackup({
     integrations: {
       [provider]: {
-        enabled: !!payload.enabled,
-        status: payload.status || undefined,
-        notes: payload.notes ?? undefined,
-        is_default: payload.is_default,
-        config: payload.config || {},
+        enabled: payload.enabled !== undefined ? !!payload.enabled : !!prev.enabled,
+        status: payload.status || prev.status || undefined,
+        notes: payload.notes !== undefined ? payload.notes : prev.notes,
+        is_default:
+          payload.is_default !== undefined ? payload.is_default : prev.is_default,
+        config:
+          payload.config && typeof payload.config === 'object'
+            ? { ...(prev.config || {}), ...payload.config }
+            : prev.config || {},
         secrets,
       },
     },

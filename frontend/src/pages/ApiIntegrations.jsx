@@ -115,6 +115,14 @@ function IntegrationCard({
       toast('Saved — verifying API…');
       const res = await onVerify(item.id);
       if (res?.ok || res?.status === 'connected') {
+        backupIntegration(item.provider, {
+          enabled: true,
+          status: 'connected',
+          config: configDraft,
+          secrets: secretsPayload,
+          notes: item.notes,
+          is_default: item.is_default,
+        });
         toast(res.message || 'Connected');
       } else {
         toast(res?.message || 'Saved — check connectivity status');
