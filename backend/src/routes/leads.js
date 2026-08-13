@@ -357,6 +357,10 @@ export function registerLeadRoutes(app) {
         const phone = normalizePhone(owner.phone || item.phone || '');
         const email = String(owner.email || item.email || '').trim().toLowerCase();
         const company = String(item.clinicName || item.company || '').trim();
+        // Contact name is NOT NULL in DB — fall back to clinic when owner is unknown
+        const contactName = String(
+          owner.name || item.name || company || 'Clinic contact'
+        ).trim();
         const city = String(item.city || '').trim();
         const placeId = item.placeId || null;
         const batchKeys = leadDedupeKeys({
@@ -439,10 +443,10 @@ export function registerLeadRoutes(app) {
 
         insert.run(
           id,
-          owner.name || item.name,
+          contactName,
           owner.email || item.email || '',
           owner.phone || item.phone || '',
-          company,
+          company || contactName,
           owner.title || item.title || 'Clinic Owner',
           item.source || 'Multi-platform Discovery',
           item.temperature === 'hot' ? 'qualified' : 'new',
